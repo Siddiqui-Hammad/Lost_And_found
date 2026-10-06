@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI + IITSmart Lost & Found System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://chunkcdn.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .oled-screen { background-color: #050b14; color: #38bdf8; font-family: 'Courier New', Courier, monospace; border: 3px solid #334155; box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.3); }
+        .servo-open { transform: rotate(-75deg); transition: transform 0.4s ease-in-out; }
+        .servo-closed { transform: rotate(0deg); transition: transform 0.4s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-slate-800/90 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm;px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('overview')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <i class="fa-solid fa-radar text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Smart Lost & Found</span>
+                        <span class="hidden md:inline-block ml-2 text-xs text-slate-400 font-medium">| AKTU Sem 3 Mini Project</span>
+                    </div>
+                </div>
+
+                <div class="hidden lg:flex items-center space-x-1">
+                    <button onclick="switchTab('overview')" id="nav-overview" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-white bg-blue-600">
+                        <i class="fa-solid fa-house mr-1.5"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('report-lost')" id="nav-report-lost" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-circle-question mr-1.5 text-rose-400"></i> Report Lost
+                    </button>
+                    <button onclick="switchTab('report-found')" id="nav-report-found" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-hand-holding-heart mr-1.5 text-emerald-400"></i> Report Found
+                    </button>
+                    <button onclick="switchTab('matches')" id="nav-matches" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-brain mr-1.5 text-purple-400"></i> AIMatches
+                        <span id="badge-matches" class="ml-1 px-1.5 py-0.5 text-xs bg-purple-600 text-white rounded-full">3</span>
+                    </button>
+                    <button onclick="switchTab('iot-box')" id="nav-iot-box" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-microchip mr-1.5 text-cyan-400"></i> IoT Smart Box
+                    </button>
+                    <button onclick="switchTab('admin')" id="nav-admin" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-shield-halved mr-1.5 text-amber-400"></i> Admin Panel
+                    </button>
+                    <button oniclick="switchTab('analytics')" id="nav-analytics" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700">
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-indigo-400"></i> Analytics
+                    </button>
+                    <button oniclick="switchTab('presentation')" id="nav-presentation" class="tab-btn px-3 py-2 rounded-lg text-sm font-medium text-amber-300 bg-amber-950/40 border border-amber-600/50 hover:bg-amber-900/50">
+                        <i class="fa-solid fa-graduation-cap mr-1.5"></i> Viva & PPT
+                    </button>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="currentUserLabel" class="text-xs font-semibold text-slate-300">Rahul (Student)</span>
+                        <button onclick="toggleUserRole()" title="Switch between Student and Admin" class="text-xs text-blue-400 hover:text-blue-300 ml-1 underline">Switch</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl"w-full mx-auto px-4 sm;px-6 lg:px-8 py-6">
+        <section id="tab-overview" class="space-y-6">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-900/60 via-indigo-900/40 to-slate-900 border border-blue-800/40 p-6 sm:p-8">
+                <div class="relative z-10 max-w-2xl">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-3">
+                        <i class="fa-solid fa-sparkles mr-1.5"></i> AI_Powered Campus Recovery Platform
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+                        “Find what you lost. <br class="hidden sm:inline"/><span class="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Return what you found.</span>”
+                    </h1>
+                    <p class="text-slate-300 text-sm sm:text-base mb-6 leading-relaxed">
+                        Centrally integrates ESP32 RFID Smart Dropboxes across campus with NLP semantic embeddings to automatically match, verify, and return lost belongings.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <button oniclick="switchTab('report-lost')" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg shadow-blue-600/30 transition flex items-center">
+                            <i class="fa-solid fa-plus-circle mr-2"></i> Report Lost Item
+                        </button>
+                        <button oniclick="switchTab('iot-box')" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-sm font-semibold transition flex items-center">
+                            <i class="fa-solid fa-microchip mr-2"></i> Test IoT Smart Box
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400 uppercase">Lost Reports</span>
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                            <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="stat-total-lost" class="text-2xl font-bold text-white mt-2">--</div>
+                    <span class="text-xs text-slate-400">Active campus reports</span>
+                </div>
+                <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400 uppercase">Found Items</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-between">
+                            <i class="fa-solid fa-box-open text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="stat-total-found" class="text-2xl font-bold text-white mt-2">--</div>
+                    <span class="text-xs text-slate-400">IoT Box & Manual</span>
+                </div>
+                <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400 uppercase">AI Matches</span>
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                            <i class="fa-solid fa-brain text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="stat-ai-matches" class="text-2xl font-bold text-white mt-2">--</div>
+                    <span class="text-xs text-purple-400 font-semibold">High & Possible Matches</span>
+                </div>
+                <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400 uppercase">Recovery Rate</span>
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                            <i class="fa-solid fa-award text-sm"></i>
+                        </div>
+                    </div>
+                    <div id="stat-recovery-rate" class="text-2xl font-bold text-emerald-400 mt-2">--%</div>
+                    <span class="text-xs text-slate-400">Verified & Returned</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-question text-rose-400"></i>
+                            <h2 class="text-lw font-bold text-white">Recent Lost Reports</h2>
+                        </div>
+                        <button oniclick="switchTab('report-lost')" class="text-xs text-blue-400 hover:text-blue-300">+ Report New</button>
+                    </div>
+                    <div id="recent-lost-list" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        <div class="text-center py-8 text-slate-500 text-sm">Loading lost items...</div>
+                    </div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-hand-holding-heart text-emerald-400"></i>
+                            <h2 class="text-lg font-bold text-white">Recently Found & Deposited</h2>
+                        </div>
+                        <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Real-time IoT Feed</span>
+                    </div>
+                    <div id="recent-found-list" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        <div class="text-center py-8 text-slate-500 text-sm">Loading found items...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="tab-report-lost" class="hidden max-w-3xl mx-auto">
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-slate-700">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-exclamation text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Report a Lost Item</h2>
+                        <p class="text-xs text-slate-400">Our AIMatching Engine will immediately scan all smart boxes & found records.</p>
+                    </div>
+                </div>
+                <form id="lostForm" onsubmit="submitLostItem(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Item Name *</label>
+                            <input type="text" id="lost_item_name" required placeholder="e.g., Boat Wireless Earbuds" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Category *</label>
+                            <select id="lost_category" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                                <option value="Electronics">Electronics (Earbuds, Charger, Phone)</option>
+                                <option value="Accessories">Accessories (Wallet, Keys, Watch, Specs)</option>
+                                <option value="Documents">Documents (ID Card, Admit Card, Aadhar)</option>
+                                <option value="Bags">Bags & Backpacks</option>
+                                <option value="Stationery">Stationery & Books</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Brand / Make</label>
+                            <input type="text" id="lost_brand" placeholder="e.g., Boat / Casio / Wildhorn" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Color *</label>
+                            <input type="text" id="lost_color" required placeholder="e.g., White / Black" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Last Seen Location *</label>
+                            <select id="lost_location" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                                <option value="Library">Library (Reading Room / 1st Floor)</option>
+                                <option value="Canteen">Canteen / Central Food Court</option>
+                                <option value="Main"�y">Main Gate & Parking Area</option>
+                                <option value="Admin Block">Admin Block / Academic Reception</option>
+                                <option value="Sports Complex">Sports Complex & Gym</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Approximate Time *</label>
+                            <input type="text" id="lost_time" required placeholder="e.g., 2:30 PM today" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Image URL (Optional)</label>
+                            <input type="url" id="lost_image" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Detailed Description *</label>
+                        <textarea id="lost_description" rows="3" required placeholder="Provide clear descriptions (e.g. White wireless earbuds inside a black silicone case with silver clip)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+                    </div>
+                    <div class="pt-2 flez justify-end space-x-3">
+                        <button type="button" onclick="switchTab('overview')" class="px-5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium">Cancel</button>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg shadow-blue-600/30 flex items-center">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> Submit & Scan Matches
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <section id="tab-report-found" class="hidden max-w-3xl mx-auto">
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl">
+                <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-slate-700">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <i class="fa-solid fa-hand-holding-heart text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Report a Found Item (Manual Submission)</h2>
+                        <p class="text-xs text-slate-400">Did you find an item outside the IoT box? Register it manually here.</p>
+                    </div>
+                </div>
+                <form id="foundForm" onsubmit="submitFoundItem(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Item Name *</label>
+                            <input type="text" id="found_item_name" required placeholder="e.g., Casio FX-991EX Calculator" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Category *</label>
+                            <select id="found_category" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <option value="Stationery">Stationery & Books</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Accessories">Accessories</option>
+                                <option value="Documents">Documents</option>
+                                <option value="Bags">Bags</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Brand / Make</label>
+                            <input type="text" id="found_brand" placeholder="e.g., Casio" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Color *</label>
+                            <input type="text" id="found_color" required placeholder="e.g., Black" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Found Location *</label>
+                            <select id="found_location" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <option value="Admin Block">Admin Block / Reception</option>
+                                <option value="Library">Library</option>
+                                <option value="Canteen">Canteen</option>
+                                <option value="Main"�y">Main Gate</option>
+                                <option value="Sports Complex">Sports Complex</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Detailed Description *</label>
+                        <textarea id="found_description" rows="3" required placeholder="Describe condition, location details (e.g. Found on desk in Exam Hall B)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                    <div class="pt-2 flez justify-end space-x-3">
+                        <button type="button" onclick="switchTab('overview')" class="px-5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium">Cancel</button>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-lg shadow-emerald-600/30 flex items-center">
+                            <i class="fa-solid fa-check mr-2"></i> Register Found Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <section id="tab-matches" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md+justify-between gap-4 bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <i class="fa-solid fa-brain text-purple-400 mr-2"></i> AI Semantic Match Engine
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Composite scoring = 35% Text Semantics + 20% Category + 15% Color + 10% Brand + 10% Location + 10% Temporal Window
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-x{ text-slate-400 font-medium">Filter Tier:</span>
+                    <select id="match-tier-filter" onchange="loadMatches()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white">
+                        <option value="">All Matches (>=50%)</option>
+                        <option value="HIGH">High Probability (>=85%)</option>
+                        <option value="POSSIBLE">Possible Matches (65-84%)</option>
+                    </select>
+                </div>
+            </div>
+            <div id="matches-grid" class="space-y-4"></div>
+        </section>
+        <section id="tab-iot-box" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg_col-span-7 bg-slate-800/90 border border-cyan-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-700 mb-6">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+                            <h2 class="text-lg font-bold text-white">ESP32 Smart Drop Box #BOX-001</h2>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                <i class="fa-solid fa-wifi mr-1"></i> Wi-Fi Online
+                            </span>
+                            <span class="px-2.5 py-1 text-xs rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">ESP32-WROOM</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">0.96" I2C LED (SSD1306)</span>
+                            <div class="w-full h-40 rounded-xl oled-screen p-3 flex flex-col justify-between text-xs">
+                                <div>
+                                    <div class="flex justify-between border-b border-cyan-800 pb-1 text-[10px] text-cyan-400">
+                                        <span>AKTU LOST & FOUND</span>
+                                        <span id="oled-clock">14:45</span>
+                                    </div>
+                                    <div id="oled-line1" class="text-cyan-200 font-bold mt-2 text-sm">READY TO SCAN</div>
+                                    <div id="oled-line2" class="text-cyan-400 text-xs mt-1">Tap RFID Tag to Deposit</div>
+                                </div>
+                                <div class="border-t border-cyan-900 pt-1 flex justify-between text-[10px] text-cyan-500">
+                                    <span id="oled-status">STATUS: IDLE</span>
+                                    <span id="oled-tag">NO TAG</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 mt-3">
+                                <div class="flex items-center space-x-1.5">
+                                    <span id="led-pwr" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                                    <span class="text-[10px] text-slate-400">PWR (5V)</span>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <span id="led-rfid" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                                    <span class="text-[10px] text-slate-400">RFID SCAN</span>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <span id="led-wifi" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                                    <span class="text-[10px] text-slate-400">HTTP REST</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col justify-between space-y-4">
+                            <div class="bg-slate-900/90 border-2 border-dashed border-cyan-500/40 rounded-xl p-4 text-center flex flex-col items-center justify-center relative">
+                                <div class="w-12 h-12 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-2 animate-pulse">
+                                    <i class="fa-solid fa-id-badge text-2xl"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-200">MFRC-522 RFID Target</span>
+                                <span class="text-[11px] text-slate-400">SPI Interface (3.3V)</span>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-3 flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                                        <i class="fa-solid fa-gears text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-semibold text-slate-200">SG90 Servo Door</div>
+                                        <div id="servo-label" class="text-[11px] text-slate-400">LOCKED (00)</div>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 flex items-center justify-center bg-slate-800 rounded-lg">
+                                    <div id="servo-arm" class="w-5 h-1 bg-amber-400 rounded servo-closed origin-left"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                            <span><i class="fa-solid fa-terminal mr-1"></i> ESP32 UART Serial Log (115200 Baud)</span>
+                            <button oniclick="clearIotLog()" class="text-slate-500 hover:text-slate-300 text-[10px]">Clear</button>
+                        </div>
+                        <div id="iot-serial-log" class="bg-slate-950 rounded-xl p-3 h-32 overflow-y-auto font-mono text-[11px] text-emerald-400 border border-slate-800 space-y-0.5">
+                            <div>[BOOT] ESP32-WROOM-32 booting up...</div>
+                            <div>[NET] Connecting to Campus_WiFi... Connected! (IP: 192.168.1.104)</div>
+                            <div>[RFID] MFRC522 initialized on SPI pins (18, 19, 23, 5)</div>
+                            <div>[OLEDS SS@1306 128x64 display ready on I2C (SDA: 21, SCL: 22)</div>
+                            <div>[SERVO] SG90 calibrated to 0 deg (Door Locked)</div>
+                            <div>[SYSTEML Listening for found item deposits...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 bg-slate-800/90 border border-slate-700 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-4 pb-3 border-b border-slate-700">
+                            <i class="fa-solid fa-sliders text-cyan-400"></i>
+                            <h3 class="text-base font-bold text-white">Deposit an Item into Smart Box</h3>
+                        </div>
+                        <form id="iotDepositForm" onsubmit="handleIoTDeposit(event)" class="space-y-3.5">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Select Smart Box Location</label>
+                                <select id="iot_box_id" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                    <option value="BOX-001">BOX-001 (Library - 1st Floor Entry)</option>
+                                    <option value="BOX-002">BOX-002 (Canteen - Food Court)</option>
+                                    <option value="BOX-003">BOX-003 (Main Gate - Security Desk)</option>
+                                    <option value="BOX-004">BOX-004 (Admin Block - Reception)</option>
+                                    <option value="BOX-005">BOX-005 (Sports Complex - Gym)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Simulated RFID Tag UID</label>
+                                <div class="flex space-x-2">
+                                    <select id="iot_rfid_select" onchange="document.getElementById('iot_rfid_tag').value = this.value" class="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-300 w-1/2">
+                                        <option value="RFID-1024">RFID-1024 (Wallet Tag)</option>
+                                        <option value="RFID-E204A1">RFID-E204A1 (Earbuds Tag)</option>
+                                        <option value="RFID-KEY-88">RFID-KEY-88 (Keys Tag)</option>
+                                        <option value="RFID-CALC-09">RFID-CALC-09 (Calculator Tag)</option>
+                                    </select>
+                                    <input type="text" id="iot_rfid_tag" value="RFID-1024" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-cyan-400 font-mono w-1/2">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Deposited Item Name *</label>
+                                <input type="text" id="iot_item_name" value="Black Leather Wallet" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                                    <select id="iot_category" class="w-full bg-slate-900 border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                        <option value="Accessories">Accessories</option>
+                                        <option value="Electronics">Electronics</span>
+                                        <option value="Documents">Documents</option>
+                                        <option value="Bags">Bags</option>
+                                        <option value="Stationery">Stationery</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 mb-1">Color</label>
+                                    <input type="text" id="iot_color" value="Black" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Brand</label>
+                                <input type="text" id="iot_brand" value="Wildhorn" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                                <textarea id="iot_desc" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">Black leather wallet containing student college ID card.</textarea>
+                            </div>
+                            <button type="submit" id="btn-deposit-iot" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/25 flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-fingerprint"></i>
+                                <span>Simulate RFID Tap & Deposit</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="tab-admin" class="hidden space-y-6">
+            <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <i class="fa-solid fa-shield-halved text-amber-400 mr-2"></i> Proctor / Admin Verification Panel
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Verify student secret ownership proof answers before releasing physical items.
+                    </p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    Faculty Portal
+                </span>
+            </div>
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Pending Student Claims</h3>
+                <div id="admin-claims-list" class="space-y-3"></div>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 overflow-x-auto">
+                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">All Campus Found Items & Box Inventory</h3>
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-900/60 text-slate-400 border-b border-slate-700">
+                        <tr>
+                            <th class="p-3">Item ID</th>
+                            <th class="p-3">Name & Category</th>
+                            <th class="p-3">Source & Box</th>
+                            <th class="p-3">RFID Tag</th>
+                            <th class="p-3">Location</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-items-table" class="divide-y divide-slate-700/50"></tbody>
+                </table>
+            </div>
+        </section>
+        <section id="tab-analytics" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center">
+                        <i class="fa-solid fa-chart-pie text-blue-400 mr-2"></i> Most Lost Categories
+                    </h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center">
+                        <i class="fa-solid fa-map-location-dot text-rose-400 mr-2"></i> Campus Loss Hotspots
+                    </h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="locationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/30 rounded-2xl p-6">
+                <h3 class="text-base font-bold text-white mb-2">Automated Recovery Insights</h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    By installing <strong>ESP32 Smart Dropboxes</strong> near high-traffic zones (Library & Canteen), student recovery turnaround time drops from an average of <strong>5 days</strong> to <strong>less than 2 hours</strong>. The semantic NLP engine eliminates manual noticeboard scanning by computing real-time similarity embeddings.
+                </p>
+            </div>
+        </section>
+        <section id="tab-presentation" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-amber-950/50 to-slate-900 border border-amber-600/40 rounded-2xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">AKTU Sem 3 Mini Project</span>
+                        <h2 class="text-2xl font-black text-white mt-1">Project Presentation & Viva Voice Guide</h2>
+                        <p class="text-xs text-slate-400">Everything you need to score maximum marks in your viva examination.</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 font-mono">B.Tech (CSE/IT/ECE)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
+                    <div class="flex items-center space-x-2 text-blue-400 font-bold text-sm">
+                        <span class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs">1</span>
+                        <span>Problem Statement & Motivation</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
+                        <li>Manual WhatsApp groups & notice boards fail to track lost ID cards, wallets, and earphones.</li>
+                        <li>No centralized digital database or automated notification.</li>
+                        <li>Time & discovery locations are lost, making recovery rate below 25%.</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
+                    <div class="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                        <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs">2</span>
+                        <span>Where is AI? (Evaluation Defense)</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
+                        <li><strong>TF-IDF & Cosine Similarity Embeddings</strong> compare lost vs found textual descriptions.</li>
+                        <li><strong>Weighted Multi-Attribute Scoring Engine:</strong> Category (20%), Color (15%), Brand (10%), Location Proximity (10%), Temporal Window (10%), Text Semantics (35%).</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
+                    <div class="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
+                        <span class="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">3</span>
+                        <span>Where is IoT? (Hardware Architecture)</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
+                        <li><strong>ESP32 Microcontroller:</strong>Handles Wi-Fi HTTP API communication.</li>
+                        <li><strong>MFRC-522 RFID:</strong> Scans temporary RFID tags on deposited items.</li>
+                        <li><strong>SSD1306 OLED:</strong> Displays live feedback (“ITEM REGISTERED”).</li>
+                        <li><strong>SG90 Servo + Buzzer:</strong> Automated physical locking and audio chime.</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
+                    <div class="flex items-center space-x-2 text-purple-400 font-bold text-sm">
+                        <span class="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-xs">4</span>
+                        <span>Security & Ownership Verification</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
+                        <li>AI does<em>not</em> return items automatically — prevents fake claims.</li>
+                        <li>Student submits private verification proof (e.g. wallpaper, inner contents, lock PIN).</li>
+                        <li>Proctor verifies proof before changing item state to <strong>RESOLVED / RETURNED</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/70 border border-slate-700 rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-white mb-3">Hardware Prototype Cost (INB / Indian Rupee)</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-300">
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-slate-400">ESP32 DevBoard:</span>
+                        <div class="font-bold text-white text-sm">₹380</div>
+                    </div>
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-slate-400">RC522 RFID + Tags:</span>
+                        <div class="font-bold text-white text-sm">₹120</div>
+                    </div>
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-slate-400">0.96" I2C OLED:</span>
+                        <div class="font-bold text-white text-sm">₹140</div>
+                    </div>
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-slate-400">SG90 Servo + Buzzer:</span>
+                        <div class="font-bold text-white text-sm">₰80</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-emerald-400 font-semibold text-right">
+                    Total Prototype Budget: ~ ₹850 – ₰1,200
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Claim Modal -->
+    <div id="claimModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg"w-full p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h3 class="text-base font-bold text-white flex items-center">
+                    <i class="fa-solid fa-hand-holding-hand text-blue-400 mr-2"></i> Submit Ownership Claim
+                </h3>
+                <button onclick="closeClaimModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="text-xs text-slate-300 space-y-1">
+                <p><strong>Claiming Item:</strong> <span id="modal-item-name" class="text-blue-400 font-semibold">--</span></p>
+                <p><strong>Found Location:</strong> <span id="modal-item-loc">--</span></p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Proof of Ownership / Secret Details *</label>
+                <textarea id="claim_secret_details" rows="3" required placeholder="Describe details only the real owner knows: What was inside the wallet? Any specific scratches, stickers, lock PIN � or wallpaper?" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-x{ text-white focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeClaimModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium">Cancel</button>
+                <button type="button" onclick="submitOwnershipClaim()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30">Submit Claim to Proctor</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRole = "student";
+        let activeClaimMatch = null;
+        let categoryChartInstance = null;
+        let locationChartInstance = null;
+
+        function playBuzzer() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch (e) { console.log("audio error"); }
+        }
+
+        function switchTab(tabId) {
+            const tabs = ['overview', 'report-lost', 'report-found', 'matches', 'iot-box', 'admin', 'analytics', 'presentation'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (el) el.classList.add('hidden');
+                if (nav) {
+                    nav.classList.remove('bg-blue-600', 'text-white');
+                    nav.classList.add('text-slate-300');
+                }
+            });
+
+            const target = document.getElementById(`tab-${tabId}`);
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if (target) target.classList.remove('hidden');
+            if (targetNav) {
+                targetNav.classList.add('bg-blue-600', 'text-white');
+                targetNav.classList.remove('text-slate-300');
+            }
+
+            if (tabId === 'overview') loadOverviewData();
+            if (tabId === 'matches') loadMatches();
+            if (tarbId === 'admin') loadAdminData();
+            if (tabId === 'analytics') loadAnalyticsData();
+        }
+
+        function toggleUserRole() {
+            currentRole = currentRole === "student" ? "admin" : "student";
+            document.getElementById('currentUserLabel').innerText = currentRole === "admin" ? "Dr. Gupta (Proctor)" : "Rahul (Student)";
+            alert(`Switched active profile to: ${currentRole.toUpperCase()}`);
+        }
+
+        async function loadOverviewData() {
+            try {
+                const [lostRes, foundRes, matchesRes, analyticsRes] = await Promise.all([ 
+                    fetch('/api/lost-items').then(r => r.json()),
+                    fetch('/api/found-items').then(r => r.json()),
+                    fetch('/api/matches').then(r => r.json()),
+                    fetch('/api/analytics').then(r => r.json())
+                ]);
+
+                document.getElementById('stat-total-lost').innerText = analyticsRes.summary.total_lost;
+                document.getElementById('stat-total-found').innerText = analyticsRes.summary.total_found;
+                document.getElementById('stat-ai-matches').innerText = analyticsRes.summary.ai_matches;
+                document.getElementById('stat-recovery-rate').innerText = `${analyticsRes.summary.recovery_rate}%`;
+                document.getElementById('badge-matches').innerText = matchesRes.length;
+
+                const lostListEl = document.getElementById('recent-lost-list');
+                lostListEl.innerHTML = lostRes.map(item => `
+                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${item.image_url || 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400'}" class="w-11 h-11 rounded-lg object-cover border border-slate-700">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${item.item_name}</h4>
+                                <p class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i>${item.last_seen_location} b= "${item.lost_time}"</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${item.status === 'RETURNED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">
+                            ${item.status}
+                        </span>
+                    </div>
+                `).join('');
+
+                const foundListEl = document.getElementById('recent-found-list');
+                foundListEl.innerHTML = foundRes.map(item => `
+                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${item.image_url || 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400'}" class="w-11 h-11 rounded-lg object-cover border border-slate-700">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${item.item_name}</h4>
+                                <p class="text-[11px] text-slate-400"><i class="fa-solid fa-box text-cyan-400 mr-1"></i>${item.found_location} b= "${item.source}"</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${item.source === 'IOT_BOX' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-slate-700 text-slate-300'}">
+                            ${item.source === 'IOT_BOX' ? 'IoT Box' : 'Manual'}
+                        </span>
+                    </div>
+                `).join('');
+            } catch (err) { console.error("Error:", err); }
+        }
+
+        async function loadMatches() {
+            try {
+                const tierFilter = document.getElementById('match-tier-filter').value;
+                let url = '/api/matches?min_score=50';
+                if (tierFilter) url += `&tier=${tierFilter}`;
+
+                const matches = await fetch(url).then(r => r.json());
+                const grid = document.getElementById('matches-grid');
+
+                if (matches.length === 0) {
+                    grid.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">No matches found for the selected filter.</div>';
+                    return;
+                }
+
+                grid.innerHTML = matches.map(m => `
+                    <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 hover:border-purple-500/40 transition">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-16 h-16 rounded-2xl ${m.breakdown.final_score >= 85 ? 'bg-purple-600/20 text-purple-400 border-2 border-purple-500' : 'bg-blue-600/20 text-blue-400 border-2 border-blue-500'} flex flex-col items-center justify-center flex-shrink-0">
+                                    <span class="text-lg font-black">${m.breakdown.final_score}%</span>
+                                    <span class="text-[9px] font-bold uppercase tracking-wider">${m.breakdown.tier}</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Potential Match Detected</div>
+                                    <h3 class="text-base font-bold text-white">Lost: "${m.lost_item.item_name}" ↔↑ Found: "${m.found_item.item_name}"</h3>
+                                    <p class="text-xs text-slate-400 mt-0.5">Location: ${m.lost_item.last_seen_location} ↔↑=${m.found_item.found_location} | Category: ${m.lost_item.category}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="openClaimModal('${m.lost_item.id}', '${m.found_item.id}', '${m.lost_item.item_name}', '${m.found_item.found_location}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 flex items-center">
+                                    <i class="fa-solid fa-hand-holding-hand mr-1.5"></i> Claim Item
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-700/60 grid grid-cols-3 sm:grid-cols-6 gap-2 text-[11px] text-slate-300">
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Text Match</span>
+                                <span class="font-bold text-white">${m.breakdown.text_score}%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Category</span>
+                                <span class="font-bold text-white">${m.breakdown.category_score}%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Color</span>
+                                <span class="font-bold text-white">${m.breakdown.color_score}%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Brand</span>
+                                <span class="font-bold text-white">${m.breakdown.brand_score}%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Location</span>
+                                <span class="font-bold text-white">${m.breakdown.location_score}%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-1.5 rounded-lg text-center">
+                                <span class="text-slate-400 block text-[9px]">Temporal</span>
+                                <span class="font-bold text-white">${m.breakdown.time_scoree}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) { console.error("Error:", err); }
+        }
+
+        async function submitLostItem(e) {
+            e.preventDefault();
+            const payload = {
+                item_name: document.getElementById('lost_item_name').value,
+                category: document.getElementById('lost_category').value,
+                brand: document.getElementById('lost_brand').value,
+                color: document.getElementById('lost_color').value,
+                last_seen_location: document.getElementById('lost_location').value,
+                lost_time: document.getElementById('lost_time').value,
+                description: document.getElementById('lost_description').value,
+                image_url: document.getElementById('lost_image').value || null
+            };
+
+            const res = await fetch('/api/lost-items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Lost item report registered successfully! AI matching has been triggered.");
+                document.getElementById('lostForm').reset();
+                switchTab('matches');
+            } else {
+                alert("Error registering lost item.");
+            }
+        }
+
+        async function submitFoundItem(e) {
+            e.preventDefault();
+            const payload = {
+                item_name: document.getElementById('found_item_name').value,
+                category: document.getElementById('found_category').value,
+                brand: document.getElementById('found_brand').value,
+                color: document.getElementById('found_color').value,
+                found_location: document.getElementById('found_location').value,
+                description: document.getElementById('found_description').value
+            };
+
+            const res = await fetch('/api/found-items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Found item registered successfully!");
+                document.getElementById('foundForm').reset();
+                switchTab('overview');
+            } else {
+                alert("Error registering found item.");
+            }
+        }
+
+        async function handleIoTDeposit(e) {
+            e.preventDefault();
+            const payload = {
+                box_id: document.getElementById('iot_box_id').value,
+                rfid_tag: document.getElementById('iot_rfid_tag').value,
+                item_name: document.getElementById('iot_item_name').value,
+                category: document.getElementById('iot_category').value,
+                brand: document.getElementById('iot_brand').value,
+                color: document.getElementById('iot_color').value,
+                description: document.getElementById('iot_desc').value
+            };
+
+            playBuzzer();
+            document.getElementById('led-rfid').className = "w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping";
+            document.getElementById('servo-arm').className = "w-5 h-1 bg-emerald-400 rounded servo-open origin-left";
+            document.getElementById('servo-label').innerText = "OPEN (90°)";
+            document.getElementById('oled-line1').innerText = "SCANNING TAG...";
+            document.getElementById('oled-line2').innerText = payload.rfid_tag;
+
+            appendIoTLog(`[RFID] Tag detected: ${payload.rfid_tag}`);
+            appendIoTLog(`[SERVO] Door opened for item deposit.`);
+            appendIoTLog(`[HTTP] Sending POST /api/iot/deposit payload...`);
+
+            const res = await fetch('/api/iot/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            setTimeout(() => {
+                document.getElementById('oled-line1').innerText = "ITEM REGISTERED";
+                document.getElementById('oled-line2').innerText = `ID: ${data.item.id}`;
+                document.getElementById('oled-tag').innerText = payload.rfid_tag;
+                document.getElementById('oled-status').innerText = "STATUS: DEPOSITED";
+                
+                appendIoTLog(`[BACKEND] Saved ${data.item.id} successfully.`);
+                if (data.best_match_score) {
+                    appendIoTLog(`[AI ENGINE] Match Found! ${data.best_match_score}% with "${data.matched_lost_item}"`);
+                }
+            }, 800);
+
+            setTimeout(() => {
+                document.getElementById('servo-arm').className = "w-5 h-1 bg-amber-400 rounded servo-closed origin-left";
+                document.getElementById('servo-label').innerText = "LOCKED (0°)";
+                document.getElementById('led-rfid').className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+                appendIoTLog(`[SERVO] Auto-locking collection box door.`);
+            }, 3000);
+        }
+
+        function appendIoTLog(msg) {
+            const logEl = document.getElementById('iot-serial-log');
+            const row = document.createElement('div');
+            row.innerText = msg;
+            logEl.appendChild(row);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearIotLog() {
+            document.getElementById('iot-serial-log').innerHTML = "<div>[SYSTEML Log cleared. Ready.</div>";
+        }
+
+        function openClaimModal(lostId, foundId, itemName, foundLoc) {
+            activeClaimMatch = { lostId, foundId };
+            document.getElementById('modal-item-name').innerText = itemName;
+            document.getElementById('modal-item-loc').innerText = foundLoc;
+            document.getElementById('claim_secret_details').value = "";
+            document.getElementById('claimModal').classList.remove('hidden');
+        }
+
+        function closeClaimModal() {
+            document.getElementById('claimModal').classList.add('hidden');
+        }
+
+        async function submitOwnershipClaim() {
+            if (!activeClaimMatch) return;
+            const secret = document.getElementById('claim_secret_details').value;
+            if (!secret.trim()) {
+                alert("Please provide secret proof details for proctor verification.");
+                return;
+            }
+
+            const payload = {
+                lost_item_id: activeClaimMatch.lostId,
+                found_item_id: activeClaimMatch.foundId,
+                secret_details: secret,
+                student_name: "Rahul Sharma",
+                student_email: "rahul.sharma@aktu.ac.in"
+            };
+
+            const res = await fetch('/api/claims', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Claim submitted successfully! The campus Proctor/Admin will review your proof.");
+                closeClaimModal();
+                switchTab('overview');
+            } else {
+                alert("Error submitting claim.");
+            }
+        }
+
+        async function loadAdminData() {
+            try {
+                const [claims, items] = await Promise.all([ fetch('/api/claims').then(r => r.json()), fetch('/api/found-items').then(r => r.json()) ]);
+                const claimsListEl = document.getElementById('admin-claims-list');
+                if (claims.length === 0) {
+                    claimsListEl.innerHTML = '<div class="bg-slate-900/60 p-4 rounded-xl text-xs text-slate-400 text-center">No pending claims currently.</div>';
+                } else {
+                    claimsListEl.innerHTML = claims.map(c => `
+                        <div class="bg-slate-900/90 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-bold text-white">${c.item_name}</span>
+                                    <span class="text-[10px] px-2 py-0.5 rounded font-bold ${c.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400' : (c.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400')}">${c.status}</span>
+                                </div>
+                                <p class="text-xs text-slate-400">Claimant: <strong class="text-slate-200">${c.student_name}</strong> (${c.student_email})</p>
+                                <p class="text-xs text-cyan-300 bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+                                    <strong>Proof Given:</strong> "${c.secret_details}"
+                                </p>
+                            </div>
+                            ${c.status === 'PENDING' ? `
+                            <div class="flex items-center space-x-2">
+                                <button onclick="verifyClaim('${c.id}', 'APPROVED')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold">
+                                    <i class="fa-solid fa-check mr-1"></i> Approve & Return
+                                </button>
+                                <button oniclick="verifyClaim('${c.id}', 'REJECTED')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold">
+                                    <i class="fa-solid fa-xmark mr-1"></i> Reject
+                                </button>
+                            </div>` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                const tableEl = document.getElementById('admin-items-table');
+                tableEl.innerHTML = items.map(item => `
+                    <tr class="hover:bg-slate-900/40">
+                        <td class="p-3 font-mono text-cyan-400">${item.id}</td>
+                        <td class="p-3 font-medium text-white">${item.item_name} <span class="text-slate-400 text[10px]">(${item.category})</span></td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] ${item.source === 'IOT_BOX' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'}">${item.source} ${item.box_id ? '('+item.box_id+')' : ''}</span></td>
+                        <td class="p-3 font-mono text-slate-400">${item.rfid_tag || 'N/A'}</td>
+                        <td class="p-3">${item.found_location}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${item.status === 'RETURNED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}">${item.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) { console.error("Error:", err); }
+        }
+
+        async function verifyClaim(claimId, status) {
+            const notes = prompt(`Enter proctor notes for ${status}:`, status === "APPROVED" ? "Identity verified via college ID card." : "Proof mismatch.");
+            const res = await fetch(`/api/claims/${claimId}/verify`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status, admin_notes: notes || "" })
+            });
+            if (res.ok) {
+                alert(`Claim ${status} successfully! Item marked as RETURNED.`);
+                loadAdminData();
+            }
+        }
+
+        async function loadAnalyticsData() {
+            try {
+                const analytics = await fetch('/api/analytics').then(r => r.json());
+                const catLabels = Object.keys(analytics.category_distribution);
+                const catValues = Object.values(analytics.category_distribution);
+
+                if (categoryChartInstance) categoryChartInstance.destroy();
+                categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+                    type: 'doughnut',
+                    data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } } }
+                });
+
+                const locLabels = Object.keys(analytics.location_hotspots);
+                const locValues = Object.values(analytics.location_hotspots);
+
+                if (locationChartInstance) locationChartInstance.destroy();
+                locationChartInstance = new Chart(document.getElementById('locationChart'), {
+                    type: 'bar',
+                    data: { labels: locLabels, datasets: [{ label: 'Incidents Recorded', data: locValues, backgroundColor: '#3b82f6' }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#94a3c8' }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3c8' }, grid: { color: '#334155' } } }, plugins: { legend: { display: false } } }
+                });
+            } catch (err) { console.error("Error:", err); }
+        }
+
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadOverviewData();
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('oled-clock').innerText = now.toTimeString().substring(0, 5);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
