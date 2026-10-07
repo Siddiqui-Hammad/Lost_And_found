@@ -1,28 +1,37 @@
-﻿DEFAULT_USERS = [
+DEFAULT_USERS = [
     {
         "id": "USR-101",
         "name": "Rahul Sharma",
-        "email": "rahul.sharma@aktu.ac.in",
+        "email": "rahul.sharma@campus.edu",
+        "password": "student123",
         "role": "student",
         "student_id": "2300970100045",
+        "department": "Computer Science & Engineering",
+        "semester": "Semester 3",
         "phone": "+91 9876543210",
         "created_at": "2026-10-01T10:00:00"
     },
     {
         "id": "USR-102",
         "name": "Priya Verma",
-        "email": "priya.verma@aktu.ac.in",
+        "email": "priya.verma@campus.edu",
+        "password": "student123",
         "role": "student",
         "student_id": "2300970100088",
+        "department": "Information Technology",
+        "semester": "Semester 3",
         "phone": "+91 9876543211",
         "created_at": "2026-10-02T11:30:00"
     },
     {
         "id": "USR-ADMIN",
-        "name": "Dr. A. K. Gupta (Chief Proctor)",
-        "email": "admin@aktu.ac.in",
+        "name": "Prof. S. K. Mehta (Campus Administrator)",
+        "email": "admin@campus.edu",
+        "password": "admin123",
         "role": "admin",
-        "student_id": "FACULTY-001",
+        "student_id": "ADMIN-001",
+        "department": "Dean Student Welfare",
+        "semester": "Staff / Faculty",
         "phone": "+91 9876543299",
         "created_at": "2026-09-01T09:00:00"
     }

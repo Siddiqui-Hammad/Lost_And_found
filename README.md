@@ -1,22 +1,60 @@
-# AI_+ IoT Smart Lost & Found System
+# AI + IoT Smart Lost & Found System
 
-> **AKTU Semester 3 Mini Project (B.Tech CSE / IT / ECE)**
+> **Next-Generation Campus Lost & Found Platform**  
 > Tagline: *“Find what you lost. Return what you found.”*
 
 ---
 
-## Quick Start (1-Click Launch)
+## 🌟 Key Highlights
 
-```bash
-python run.py
-```
+1. **👨‍🎓 Student Portal (Sign Up & Login)**:
+   - **Student Sign Up**: Full registration with Name, Roll Number / Student ID, College Email, Branch/Department, Semester, Phone, and Password.
+   - **Student Dashboard**: Report lost items, register found items, monitor real-time AI matches, test the IoT smart drop box, and submit secret ownership proof.
+
+2. **🛡️ Administrator Portal (Dedicated Login)**:
+   - Secure Admin Access for Faculty & Proctorial Board (`admin@campus.edu` / `admin123`).
+   - **Claims Verification Desk**: Review secret proof submitted by claimants, approve/reject releases.
+   - **Hardware Fleet Monitor**: Monitor ESP32 drop box statuses, IP addresses, and trigger remote servo unlocks.
+   - **Master Analytics & Heatmap**: Category breakdown and loss hotspot detection.
+
+3. **🧠 AI Semantic Matching Engine**:
+   - 6-Factor Composite Weighted Algorithm:
+     - **35%** TF-IDF Text & Semantic Description Similarity
+     - **20%** Category Exact/Semantic Match
+     - **15%** Color Match
+     - **10%** Brand / Make Match
+     - **10%** Location Proximity Match
+     - **10%** Temporal Window Decay
+
+4. **📟 Interactive Virtual IoT Smart Box Simulator**:
+   - Emulates an ESP32 micro-controller with SSD1306 OLED display, MFRC-522 RFID reader, and SG90 servo motor.
+
+5. **⚡ ESP32 Production Firmware**:
+   - Ready-to-flash Arduino C++ firmware located in [`iot_firmware/esp32_smart_box.ino`](file:///C:/Users/Asus/.gemini/antigravity/scratch/smart-lost-and-found/iot_firmware/esp32_smart_box.ino).
 
 ---
 
-## Key Features:
-1. **Student Portal**: Report lost/found items, view AI matches, submit claims.
-2. **AI Semantic Matching Engine**: TF-IDF + Cosine Similarity + Multi-Attribute weighted scoring (35% Text, 20% Category, 15% Color, 10% spatial, time, brand).
-3. **Interactive Virtual IoT Smart Box Simulator**: OLED 128x64 display, RFID tag scan, SG90 Servo door, and audio buzzer chime.
-4. **Admin Panel**: Verify student proof answers and approve returns.
-5. **ESP32 Firmware& Wiring**: Complete Arduino C++ firmware in `iot_firmware/`.
-6. **AKTU Project Report & Viva Guide**: Full documentation in `docs_aktu_project/`.
+## 🚀 Quick Launch (Localhost)
+
+### Option 1: Streamlit Web UI (Cloud & Local)
+```powershell
+streamlit run app.py
+```
+👉 Opens `http://localhost:8501`
+
+### Option 2: Full-Stack FastAPI + Simulator
+```powershell
+python run.py
+```
+👉 Opens `http://127.0.0.1:8000`
+
+---
+
+## 🔐 Default Credentials for Testing
+
+- **Administrator**:
+  - Email: `admin@campus.edu`
+  - Password: `admin123`
+- **Student Demo**:
+  - Email: `rahul.sharma@campus.edu` or Roll No: `2300970100045`
+  - Password: `student123`

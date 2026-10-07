@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -6,8 +6,11 @@ class User(BaseModel):
     id: str
     name: str
     email: str
+    password: Optional[str] = "password123"
     role: str = "student"  # student or admin
-    student_id: Optional[str] = None
+    student_id: Optional[str] = None  # Roll Number / ID
+    department: Optional[str] = "Computer Science"
+    semester: Optional[str] = "Semester 3"
     phone: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
