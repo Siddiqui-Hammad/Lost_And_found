@@ -515,52 +515,43 @@ if not is_admin:
 
         else:
             st.info(f"Reporting as **{current_user.get('name')}** (GLBITM Roll/ID: {current_user.get('student_id')}).")
-            st.caption("📷 Snap a photo with your phone/laptop camera or upload an image, select where you found it, and write a quick description. The Proctorial Board Administrator will run AI forensic analysis on your submission.")
+            st.caption("📷 Simply snap or upload a photo, select where you found it, and write a brief description. No extra forms needed—the Proctorial Board Administrator will run AI forensic analysis to extract all details.")
 
-            # Photo Capture Method selection
             col_cam_opt, col_loc = st.columns([1.2, 1])
             with col_cam_opt:
                 photo_method = st.radio(
-                    "Photo Input Method:",
-                    ["📸 Take Photo using Live Camera", "📁 Upload Image from Device", "🚫 No Photo (Text Only)"],
+                    "Photo Input:",
+                    ["📸 Live Camera Snap", "📁 Upload Image File", "📝 Text Only"],
                     horizontal=True
                 )
             with col_loc:
                 found_location = st.selectbox("📍 Found Location at GL Bajaj *", CAMPUS_LOCATIONS)
 
             captured_image_file = None
-            if photo_method == "📸 Take Photo using Live Camera":
-                captured_image_file = st.camera_input("📷 Snap Picture of Found Item")
-            elif photo_method == "📁 Upload Image from Device":
-                captured_image_file = st.file_uploader("📁 Select item photo (JPG/PNG/WEBP):", type=["jpg", "jpeg", "png", "webp"])
+            if photo_method == "📸 Live Camera Snap":
+                captured_image_file = st.camera_input("📷 Take Picture of Item")
+            elif photo_method == "📁 Upload Image File":
+                captured_image_file = st.file_uploader("📁 Upload item photo (JPG/PNG/WEBP):", type=["jpg", "jpeg", "png", "webp"])
 
             if captured_image_file:
-                st.image(captured_image_file, caption="Item Photo Preview", width=320)
+                st.image(captured_image_file, caption="Captured Item Photo", width=340)
 
             st.write("")
-            with st.form("student_found_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    item_name_input = st.text_input("Item Name / Title *", placeholder="e.g. Wireless Earbuds / Wildhorn Wallet / Keys")
-                    category_input = st.selectbox("Category (Best Guess) *", ITEM_CATEGORIES)
-                with col2:
-                    color_input = st.text_input("Color *", placeholder="e.g. Black / White / Blue")
-                    brand_input = st.text_input("Brand (Optional)", placeholder="e.g. Boat / Casio / Unknown")
-
+            with st.form("simple_student_found_form", clear_on_submit=True):
                 description_input = st.text_area(
-                    "Student Description & Finder Observations *",
-                    placeholder="Describe where on the bench/desk you found it, unique stickers, scratches, condition, or if you turned it in to a guard or desk."
+                    "📝 Item Description & Finder Notes *",
+                    placeholder="e.g. Found black wireless earbuds in a silicone case on row 4 desk in Central Library / Found keys on canteen bench.",
+                    height=120
                 )
 
-                submit_found_btn = st.form_submit_button("🚀 Submit Found Item to Campus Registry", use_container_width=True, type="primary")
+                submit_found_btn = st.form_submit_button("🚀 Submit Found Item", use_container_width=True, type="primary")
 
                 if submit_found_btn:
-                    if not item_name_input.strip() or not description_input.strip() or not color_input.strip():
-                        st.error("Please fill in the Item Name, Color, and Description fields (*).")
+                    if not description_input.strip() and not captured_image_file:
+                        st.error("Please provide at least a photo or a description of what you found.")
                     else:
                         item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
                         
-                        # Encode image bytes if photo was provided
                         img_b64 = None
                         if captured_image_file:
                             try:
@@ -569,13 +560,17 @@ if not is_admin:
                             except Exception as e:
                                 print(f"[Image Encode Error]: {e}")
 
+                        # Derive a friendly initial item title from the first sentence or default
+                        first_words = description_input.strip().split("\n")[0][:45]
+                        item_title = first_words if first_words else "Found Item (Photo Attached)"
+
                         new_fnd = FoundItem(
                             item_id=item_id,
-                            item_name=item_name_input.strip(),
-                            category=category_input,
-                            brand=brand_input.strip(),
-                            color=color_input.strip(),
-                            description=description_input.strip(),
+                            item_name=item_title,
+                            category="Other",
+                            brand="",
+                            color="Unspecified",
+                            description=description_input.strip() if description_input.strip() else "Photo submitted by student. Awaiting Proctorial AI analysis.",
                             location=found_location,
                             found_at=datetime.datetime.now().isoformat(),
                             source="STUDENT",
@@ -594,7 +589,7 @@ if not is_admin:
 
                         st.session_state.last_reported_found = {
                             "item_id": item_id,
-                            "item_name": item_name_input.strip(),
+                            "item_name": item_title,
                             "location": found_location,
                             "match_alert": match_alert
                         }

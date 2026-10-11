@@ -12,10 +12,10 @@ class LostItemCreate(BaseModel):
     image_url: Optional[str] = None
 
 class FoundItemCreate(BaseModel):
-    item_name: str
-    category: str
+    item_name: Optional[str] = "Found Item (Pending AI Inspection)"
+    category: Optional[str] = "Other"
     brand: Optional[str] = ""
-    color: str
+    color: Optional[str] = "Unspecified"
     description: str
     location: str
     found_at: str

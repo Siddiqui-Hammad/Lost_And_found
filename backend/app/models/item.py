@@ -25,10 +25,10 @@ class FoundItem(BaseModel):
     item_id: str
     rfid_id: Optional[str] = None
     box_id: Optional[str] = None
-    item_name: str
-    category: str
+    item_name: str = "Found Item (Pending AI Inspection)"
+    category: str = "Other"
     brand: Optional[str] = ""
-    color: str
+    color: str = "Unspecified"
     description: str
     location: str
     found_at: str
