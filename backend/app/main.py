@@ -4,11 +4,11 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from .config import settings
-from .routes import auth, lost_items, found_items, iot, matches, claims, admin, analytics, notifications
+from .routes import auth, lost_items, found_items, matches, claims, admin, analytics, notifications
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Smart AI + IoT Lost & Found Management System for Campus Environments",
+    description="Multimodal AI Smart Lost & Found Management System for Campus Environments",
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -27,7 +27,6 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(lost_items.router, prefix=settings.API_V1_STR)
 app.include_router(found_items.router, prefix=settings.API_V1_STR)
-app.include_router(iot.router, prefix=settings.API_V1_STR)
 app.include_router(matches.router, prefix=settings.API_V1_STR)
 app.include_router(claims.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)

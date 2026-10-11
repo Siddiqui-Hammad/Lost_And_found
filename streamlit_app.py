@@ -8,9 +8,8 @@ from backend.app.database import db
 from backend.app.models.item import LostItem, FoundItem
 from backend.app.models.claim import Claim
 from backend.app.models.user import User
-from backend.app.schemas.iot import IoTScanRequest
-from backend.app.iot.event_handler import iot_event_handler
 from backend.app.ai.matcher import ai_matcher
+from backend.app.ai.vision_extractor import vision_extractor
 from backend.app.config import settings
 
 # Page Configuration
@@ -82,6 +81,12 @@ if "last_reported_lost" not in st.session_state:
 
 if "last_reported_found" not in st.session_state:
     st.session_state.last_reported_found = None
+
+if "ai_extracted_item" not in st.session_state:
+    st.session_state.ai_extracted_item = None
+
+if "ai_uploaded_image_bytes" not in st.session_state:
+    st.session_state.ai_uploaded_image_bytes = None
 
 # GL Bajaj Campus Locations
 CAMPUS_LOCATIONS = [
@@ -288,7 +293,6 @@ with st.sidebar:
             [
                 "📊 Master Dashboard & Analytics",
                 "🛡️ Claims Verification Desk",
-                "📦 Smart Drop Box Fleet Monitor",
                 "🧠 Global AI Match Matrix",
                 "📋 Master Inventory & Logs"
             ]
@@ -299,9 +303,8 @@ with st.sidebar:
             [
                 "🏠 Student Dashboard",
                 "❓ Report Lost Item",
-                "🎁 Report Found Item",
+                "📸 Snap & AI Report Found Item",
                 "🎯 My Matches & Claim Desk",
-                "📟 Virtual IoT Drop Box",
                 "👤 My Profile & Claims"
             ]
         )
@@ -475,9 +478,10 @@ if not is_admin:
                         }
                         st.rerun()
 
-    elif menu == "🎁 Report Found Item":
-        st.subheader("📦 Report a Found Item at GL Bajaj (Manual Submission)")
-        
+    elif menu == "📸 Snap & AI Report Found Item":
+        st.subheader("📸 Snap & Report Found Item with Multimodal AI")
+        st.caption("No lengthy forms! Just upload/snap a photo of the item you found. Our AI automatically extracts item details and writes a detailed campus description.")
+
         if st.session_state.last_reported_found:
             rep_f = st.session_state.last_reported_found
             st.markdown(f"""
@@ -498,63 +502,131 @@ if not is_admin:
             st.write("")
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                if st.button("🎁 Register Another Found Item", use_container_width=True, type="primary"):
+                if st.button("📸 Report Another Found Item", use_container_width=True, type="primary"):
                     st.session_state.last_reported_found = None
+                    st.session_state.ai_extracted_item = None
+                    st.session_state.ai_uploaded_image_bytes = None
                     st.rerun()
             with col_f2:
                 if st.button("🏠 View Campus Found Items", use_container_width=True):
                     st.session_state.last_reported_found = None
+                    st.session_state.ai_extracted_item = None
+                    st.session_state.ai_uploaded_image_bytes = None
                     st.rerun()
 
         else:
-            st.write(f"Logged in as **{current_user.get('name')}**. If you picked up an item on campus, register it here:")
+            st.info(f"Logged in as **{current_user.get('name')}** (GLBITM).")
 
-            with st.form("found_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    name = st.text_input("Item Name *", placeholder="e.g. Casio Scientific Calculator")
-                    category = st.selectbox("Category *", ITEM_CATEGORIES)
-                    brand = st.text_input("Brand / Make", placeholder="e.g. Casio / Wildhorn")
-                with col2:
-                    color = st.text_input("Color *", placeholder="e.g. Black / Silver")
-                    location = st.selectbox("Found Location at GL Bajaj *", CAMPUS_LOCATIONS)
-                    found_time = st.text_input("Found Time", placeholder="e.g. 12:30 PM")
+            # Step 1: Upload or capture photo
+            col_u1, col_u2 = st.columns([1.5, 1])
+            with col_u1:
+                uploaded_photo = st.file_uploader(
+                    "📷 Step 1: Upload or Take Photo of Found Item *",
+                    type=["jpg", "jpeg", "png", "webp"],
+                    help="Upload a clear picture of the item you found on campus."
+                )
+                quick_note = st.text_input(
+                    "📝 Quick Note (Optional)",
+                    placeholder="e.g. Found on 2nd floor desk / near water cooler / canteen bench"
+                )
+                found_loc = st.selectbox("📍 Found Location at GL Bajaj *", CAMPUS_LOCATIONS)
 
-                description = st.text_area("Detailed Description *", placeholder="Describe exact desk, room, markings, or condition.")
-                submitted = st.form_submit_button("✅ Register Found Item in System", use_container_width=True, type="primary")
+            with col_u2:
+                if uploaded_photo:
+                    st.image(uploaded_photo, caption="📸 Uploaded Item Preview", use_container_width=True)
+                else:
+                    st.markdown("""
+                    <div style="border: 2px dashed #475569; border-radius: 12px; padding: 36px 16px; text-align: center; color: #94a3b8;">
+                        <span style="font-size: 2.5rem;">📸</span><br>
+                        <b>Photo Preview Area</b><br>
+                        <small>Upload an image to see preview & AI feature extraction</small>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                if submitted:
-                    if not name.strip() or not color.strip() or not description.strip():
-                        st.error("Please fill in all required fields.")
-                    else:
-                        item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
-                        new_fnd = FoundItem(
-                            item_id=item_id,
-                            item_name=name.strip(),
-                            category=category,
-                            brand=brand.strip(),
-                            color=color.strip(),
-                            description=description.strip(),
-                            location=location,
-                            found_at=datetime.datetime.now().isoformat(),
-                            source="MANUAL",
-                            reported_by_id=curr_id,
-                            reported_by_name=current_user.get("name"),
-                            status="FOUND"
+            st.write("")
+            btn_analyze = st.button("✨ Step 2: Analyze Photo & Generate AI Description", type="primary", use_container_width=True)
+
+            if btn_analyze:
+                if not uploaded_photo and not quick_note.strip():
+                    st.error("Please upload a photo or enter a quick note about what you found.")
+                else:
+                    img_bytes = uploaded_photo.getvalue() if uploaded_photo else b""
+                    st.session_state.ai_uploaded_image_bytes = img_bytes
+                    with st.spinner("🤖 AI Vision analyzing item geometry, dominant colors, and campus context..."):
+                        extracted = vision_extractor.analyze_image(
+                            image_bytes=img_bytes,
+                            user_note=quick_note.strip(),
+                            location_hint=found_loc
                         )
-                        saved = db.add_found_item(new_fnd.model_dump())
-                        matches = ai_matcher.run_matching_for_found_item(saved)
-                        
-                        match_alert = None
-                        if matches and matches[0].final_match_score >= 65.0:
-                            match_alert = f"Matched with student lost report '{matches[0].lost_item.item_name}' ({matches[0].final_match_score}% confidence)!"
-
-                        st.session_state.last_reported_found = {
-                            "item_id": item_id,
-                            "item_name": name.strip(),
-                            "location": location,
-                            "match_alert": match_alert
+                        st.session_state.ai_extracted_item = {
+                            **extracted,
+                            "location": found_loc,
+                            "has_image": bool(uploaded_photo)
                         }
+                    st.success("✅ AI Vision successfully extracted item features! Review below and click Confirm.")
+
+            # Step 3: Review AI extraction & 1-Click Confirm
+            if st.session_state.ai_extracted_item:
+                ext = st.session_state.ai_extracted_item
+                st.markdown("---")
+                st.markdown("### 🔍 Step 3: Review AI-Extracted Information & Confirm")
+                st.caption("You can modify any extracted field if needed before publishing.")
+
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    item_name_val = st.text_input("Item Name (AI Extracted):", value=ext.get("item_name", ""))
+                    cat_idx = ITEM_CATEGORIES.index(ext.get("category")) if ext.get("category") in ITEM_CATEGORIES else 0
+                    category_val = st.selectbox("Category (AI Detected):", ITEM_CATEGORIES, index=cat_idx)
+                    brand_val = st.text_input("Brand / Make (AI Detected):", value=ext.get("brand", ""))
+                
+                with col_e2:
+                    color_val = st.text_input("Color (AI Palette Detection):", value=ext.get("color", ""))
+                    location_val = st.selectbox("Campus Location:", CAMPUS_LOCATIONS, index=CAMPUS_LOCATIONS.index(ext.get("location", CAMPUS_LOCATIONS[0])))
+                    condition_val = st.text_input("Physical Condition:", value=ext.get("condition", "Good condition"))
+
+                ai_desc_val = st.text_area("AI Generated Detailed Description:", value=ext.get("ai_description", ""), height=100)
+
+                col_sub1, col_sub2 = st.columns([2, 1])
+                with col_sub1:
+                    if st.button("🚀 Confirm & Publish Found Item to Campus", type="primary", use_container_width=True):
+                        if not item_name_val.strip() or not color_val.strip():
+                            st.error("Item Name and Color cannot be empty.")
+                        else:
+                            item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
+                            new_fnd = FoundItem(
+                                item_id=item_id,
+                                item_name=item_name_val.strip(),
+                                category=category_val,
+                                brand=brand_val.strip(),
+                                color=color_val.strip(),
+                                description=f"{ai_desc_val.strip()} (Condition: {condition_val.strip()})",
+                                location=location_val,
+                                found_at=datetime.datetime.now().isoformat(),
+                                source="AI_VISION",
+                                reported_by_id=curr_id,
+                                reported_by_name=current_user.get("name"),
+                                status="FOUND"
+                            )
+                            saved = db.add_found_item(new_fnd.model_dump())
+                            matches = ai_matcher.run_matching_for_found_item(saved)
+                            
+                            match_alert = None
+                            if matches and matches[0].final_match_score >= 65.0:
+                                match_alert = f"Matched with student lost report '{matches[0].lost_item.item_name}' ({matches[0].final_match_score}% confidence)!"
+
+                            st.session_state.last_reported_found = {
+                                "item_id": item_id,
+                                "item_name": item_name_val.strip(),
+                                "location": location_val,
+                                "match_alert": match_alert
+                            }
+                            st.session_state.ai_extracted_item = None
+                            st.rerun()
+
+                with col_sub2:
+                    if st.button("🔄 Discard & Start Over", use_container_width=True):
+                        st.session_state.ai_extracted_item = None
+                        st.session_state.ai_uploaded_image_bytes = None
                         st.rerun()
 
     elif menu == "🎯 My Matches & Claim Desk":
@@ -612,45 +684,7 @@ if not is_admin:
                                 else:
                                     st.error("Please enter proof details.")
 
-    elif menu == "📟 Virtual IoT Drop Box":
-        st.subheader("📟 Virtual ESP32 Hardware Simulator (GL Bajaj Campus)")
-        st.caption("Emulates RFID scanning, SSD1306 OLED display, and SG90 servo door locks at GL Bajaj smart dropboxes.")
 
-        col_box, col_input = st.columns([3, 2])
-        with col_box:
-            st.markdown("""
-            <div class="oled-box">
-                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #334155; padding-bottom:4px;">
-                    <span>GLBITM SMART BOX</span>
-                    <span>ONLINE 📶</span>
-                </div>
-                <div style="font-size: 1.2rem; font-weight:bold; margin-top:12px; color:#e0f2fe;">
-                    STATUS: READY TO SCAN
-                </div>
-                <div style="font-size: 0.9rem; color:#38bdf8; margin-top:4px;">
-                    Tap RFID Tag & Deposit Item
-                </div>
-                <div style="border-top:1px solid #334155; margin-top:14px; padding-top:4px; display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b;">
-                    <span>SERVO: LOCKED (0°)</span>
-                    <span>BOX-001 (Block A Library)</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col_input:
-            rfid_tag = st.selectbox("Select RFID Tag:", ["RFID-1024 (Wildhorn Wallet)", "RFID-E204A1 (Boat Earbuds)", "RFID-KEY-88 (Keys)", "RFID-CALC-09 (Calculator)"])
-            box_choice = st.selectbox("Target Smart Drop Box:", ["BOX-001 (Central Library Block A)", "BOX-002 (Main Cafeteria)", "BOX-003 (Audi Block Foyer)"])
-            
-            if st.button("🏷️ Tap RFID & Deposit into Box", use_container_width=True, type="primary"):
-                clean_rfid = rfid_tag.split()[0]
-                clean_box = box_choice.split()[0]
-                loc_map = {"BOX-001": "Central Library (Block A)", "BOX-002": "Student Canteen", "BOX-003": "Audi Block"}
-                req = IoTScanRequest(box_id=clean_box, rfid_id=clean_rfid, location=loc_map.get(clean_box, "Central Library (Block A)"))
-                resp = iot_event_handler.process_scan(req)
-                st.success(f"🎉 **DEPOSIT SUCCESSFUL!** Assigned Item ID: `{resp.item_id}`")
-                if resp.match_found:
-                    st.balloons()
-                    st.markdown(f"🧠 **AI Match Triggered:** Matched with student lost report at **{resp.top_match_score}% confidence**!")
 
     elif menu == "👤 My Profile & Claims":
         st.subheader("👤 Student Profile & Claims Status")
@@ -741,10 +775,6 @@ else:
                         else:
                             st.markdown(f"Status: **{c.get('status')}**")
 
-    elif menu == "📦 Smart Drop Box Fleet Monitor":
-        st.subheader("📦 GL Bajaj IoT Smart Drop Box Fleet Monitor")
-        boxes = db.get_iot_boxes()
-        st.dataframe(boxes, use_container_width=True)
 
     elif menu == "🧠 Global AI Match Matrix":
         st.subheader("🧠 Global Multi-Attribute AI Match Matrix")

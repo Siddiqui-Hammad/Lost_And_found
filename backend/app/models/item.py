@@ -33,7 +33,7 @@ class FoundItem(BaseModel):
     location: str
     found_at: str
     image_url: Optional[str] = None
-    source: str = "MANUAL"  # "MANUAL" or "IOT"
+    source: str = "AI_VISION"  # "AI_VISION" or "MANUAL"
     reported_by_id: Optional[str] = None
     reported_by_name: Optional[str] = None
     status: str = "FOUND"

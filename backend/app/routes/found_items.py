@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from typing import List, Optional
 import uuid
 from ..database import db
@@ -6,8 +6,32 @@ from ..models.item import FoundItem
 from ..schemas.item import FoundItemCreate, ItemStatusUpdate
 from ..routes.auth import get_current_user
 from ..ai.matcher import ai_matcher
+from ..ai.vision_extractor import vision_extractor
 
 router = APIRouter(prefix="/found-items", tags=["Found Items"])
+
+@router.post("/ai-analyze-photo")
+async def analyze_found_photo(
+    file: UploadFile = File(...),
+    note: Optional[str] = Form(""),
+    location: Optional[str] = Form("")
+):
+    """
+    Multimodal AI Vision Endpoint:
+    Analyzes an uploaded image of a found item + optional note
+    Extracts item_name, category, brand, color, condition, and generates an AI description.
+    """
+    image_bytes = await file.read()
+    analysis = vision_extractor.analyze_image(
+        image_bytes=image_bytes,
+        user_note=note or "",
+        location_hint=location or ""
+    )
+    return {
+        "success": True,
+        "extracted_data": analysis,
+        "filename": file.filename
+    }
 
 @router.get("", response_model=List[dict])
 def list_found_items(category: Optional[str] = None, status: Optional[str] = None, source: Optional[str] = None):
