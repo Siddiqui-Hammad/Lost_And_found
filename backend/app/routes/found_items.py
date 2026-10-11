@@ -66,9 +66,11 @@ def report_found_item(req: FoundItemCreate, current_user: Optional[dict] = Depen
         location=req.location,
         found_at=req.found_at,
         image_url=req.image_url,
-        source="MANUAL",
+        image_base64=req.image_base64,
+        source="STUDENT",
         reported_by_id=current_user.get("user_id") if current_user else "ANONYMOUS",
         reported_by_name=current_user.get("name") if current_user else "Good Samaritan",
+        ai_analyzed=False,
         status="FOUND"
     )
     saved = db.add_found_item(new_found.model_dump())

@@ -33,8 +33,10 @@ class FoundItem(BaseModel):
     location: str
     found_at: str
     image_url: Optional[str] = None
-    source: str = "AI_VISION"  # "AI_VISION" or "MANUAL"
+    image_base64: Optional[str] = None
+    source: str = "STUDENT"  # "STUDENT", "ADMIN", etc.
     reported_by_id: Optional[str] = None
     reported_by_name: Optional[str] = None
+    ai_analyzed: bool = False
     status: str = "FOUND"
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())

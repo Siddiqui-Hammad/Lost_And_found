@@ -202,6 +202,15 @@ class Database:
             return self.collections["found_items"][item_id]
         return None
 
+    def update_found_item(self, item_id: str, update_dict: dict) -> Optional[dict]:
+        if self.is_connected:
+            self.mongo_db.found_items.update_one({"item_id": item_id}, {"$set": update_dict})
+        if item_id in self.collections["found_items"]:
+            self.collections["found_items"][item_id].update(update_dict)
+            self.save_local_store()
+            return self.collections["found_items"][item_id]
+        return None
+
     # ==========================================
     # IOT BOXES & EVENTS
     # ==========================================

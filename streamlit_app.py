@@ -1,6 +1,8 @@
 import streamlit as st
 import datetime
 import uuid
+import base64
+import io
 import plotly.express as px
 from collections import Counter
 
@@ -512,40 +514,75 @@ if not is_admin:
                     st.rerun()
 
         else:
-            st.info(f"Reporting as **{current_user.get('name')}** (GLBITM Student ID: {current_user.get('student_id')}).")
+            st.info(f"Reporting as **{current_user.get('name')}** (GLBITM Roll/ID: {current_user.get('student_id')}).")
+            st.caption("📷 Snap a photo with your phone/laptop camera or upload an image, select where you found it, and write a quick description. The Proctorial Board Administrator will run AI forensic analysis on your submission.")
 
+            # Photo Capture Method selection
+            col_cam_opt, col_loc = st.columns([1.2, 1])
+            with col_cam_opt:
+                photo_method = st.radio(
+                    "Photo Input Method:",
+                    ["📸 Take Photo using Live Camera", "📁 Upload Image from Device", "🚫 No Photo (Text Only)"],
+                    horizontal=True
+                )
+            with col_loc:
+                found_location = st.selectbox("📍 Found Location at GL Bajaj *", CAMPUS_LOCATIONS)
+
+            captured_image_file = None
+            if photo_method == "📸 Take Photo using Live Camera":
+                captured_image_file = st.camera_input("📷 Snap Picture of Found Item")
+            elif photo_method == "📁 Upload Image from Device":
+                captured_image_file = st.file_uploader("📁 Select item photo (JPG/PNG/WEBP):", type=["jpg", "jpeg", "png", "webp"])
+
+            if captured_image_file:
+                st.image(captured_image_file, caption="Item Photo Preview", width=320)
+
+            st.write("")
             with st.form("student_found_form", clear_on_submit=True):
                 col1, col2 = st.columns(2)
                 with col1:
-                    name = st.text_input("Item Name *", placeholder="e.g. Wireless Earbuds / Titan Watch")
-                    category = st.selectbox("Category *", ITEM_CATEGORIES)
-                    brand = st.text_input("Brand / Make", placeholder="e.g. Boat / Wildhorn / Casio")
+                    item_name_input = st.text_input("Item Name / Title *", placeholder="e.g. Wireless Earbuds / Wildhorn Wallet / Keys")
+                    category_input = st.selectbox("Category (Best Guess) *", ITEM_CATEGORIES)
                 with col2:
-                    color = st.text_input("Primary Color *", placeholder="e.g. Black / White / Blue")
-                    location = st.selectbox("Found Location at GL Bajaj *", CAMPUS_LOCATIONS)
-                    found_time = st.text_input("Approximate Time Found", placeholder="e.g. 1:15 PM today")
+                    color_input = st.text_input("Color *", placeholder="e.g. Black / White / Blue")
+                    brand_input = st.text_input("Brand (Optional)", placeholder="e.g. Boat / Casio / Unknown")
 
-                description = st.text_area("Detailed Description *", placeholder="Describe exact desk, room number, condition, markings, or case details.")
-                
-                submitted = st.form_submit_button("🚀 Submit Found Item Report", use_container_width=True, type="primary")
+                description_input = st.text_area(
+                    "Student Description & Finder Observations *",
+                    placeholder="Describe where on the bench/desk you found it, unique stickers, scratches, condition, or if you turned it in to a guard or desk."
+                )
 
-                if submitted:
-                    if not name.strip() or not color.strip() or not description.strip():
-                        st.error("Please fill in all mandatory fields (*).")
+                submit_found_btn = st.form_submit_button("🚀 Submit Found Item to Campus Registry", use_container_width=True, type="primary")
+
+                if submit_found_btn:
+                    if not item_name_input.strip() or not description_input.strip() or not color_input.strip():
+                        st.error("Please fill in the Item Name, Color, and Description fields (*).")
                     else:
                         item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
+                        
+                        # Encode image bytes if photo was provided
+                        img_b64 = None
+                        if captured_image_file:
+                            try:
+                                img_bytes = captured_image_file.getvalue()
+                                img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+                            except Exception as e:
+                                print(f"[Image Encode Error]: {e}")
+
                         new_fnd = FoundItem(
                             item_id=item_id,
-                            item_name=name.strip(),
-                            category=category,
-                            brand=brand.strip(),
-                            color=color.strip(),
-                            description=description.strip(),
-                            location=location,
+                            item_name=item_name_input.strip(),
+                            category=category_input,
+                            brand=brand_input.strip(),
+                            color=color_input.strip(),
+                            description=description_input.strip(),
+                            location=found_location,
                             found_at=datetime.datetime.now().isoformat(),
                             source="STUDENT",
                             reported_by_id=curr_id,
                             reported_by_name=current_user.get("name"),
+                            image_base64=img_b64,
+                            ai_analyzed=False,
                             status="FOUND"
                         )
                         saved = db.add_found_item(new_fnd.model_dump())
@@ -557,8 +594,8 @@ if not is_admin:
 
                         st.session_state.last_reported_found = {
                             "item_id": item_id,
-                            "item_name": name.strip(),
-                            "location": location,
+                            "item_name": item_name_input.strip(),
+                            "location": found_location,
                             "match_alert": match_alert
                         }
                         st.rerun()
@@ -683,7 +720,7 @@ else:
 
     elif menu == "📸 AI Vision Item Intake & Analyzer":
         st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Forensic Analyzer")
-        st.caption("Administrator tool: Upload photos of items turned into the Proctorial Board or Campus Security. The Multimodal AI extracts item specifications, color palette, condition, and generates an official campus description.")
+        st.caption("Administrator tool: Review student-reported found items (with camera photos/descriptions) OR intake new physical items into the Proctor Office. The Multimodal AI extracts item specifications, color palette, condition, and generates an official campus description.")
 
         # Optional live Gemini Key override for Admin
         with st.expander("⚙️ AI Vision Engine Configuration (Optional API Key)", expanded=False):
@@ -693,145 +730,258 @@ else:
                 vision_extractor.set_api_key(custom_key)
                 st.success("Gemini API Key active!")
 
-        if st.session_state.last_reported_found:
-            rep_f = st.session_state.last_reported_found
-            st.markdown(f"""
-            <div class="success-card">
-                <h3 style="color:#10b981; margin-bottom:8px;">✅ Item Cataloged in Campus Registry!</h3>
-                <p style="color:#e2e8f0; font-size:1.1rem; margin-bottom:4px;">
-                    Assigned Item ID: <b style="color:#38bdf8; font-family:monospace;">{rep_f['item_id']}</b>
-                </p>
-                <p style="color:#94a3b8; font-size:0.95rem;">
-                    Item: <b>{rep_f['item_name']}</b> • Location: <b>{rep_f['location']}</b>
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+        admin_tab1, admin_tab2 = st.tabs([
+            "📥 Student Submissions Queue (Inspect & AI Analyze)",
+            "📷 Direct Admin Photo Intake"
+        ])
 
-            if rep_f.get("match_alert"):
-                st.info(f"🧠 {rep_f['match_alert']}")
+        # TAB 1: INSPECT STUDENT SUBMISSIONS
+        with admin_tab1:
+            all_found = db.get_found_items()
+            student_items = [f for f in all_found if f.get("source") == "STUDENT"]
 
-            st.write("")
-            col_b1, col_b2 = st.columns(2)
-            with col_b1:
-                if st.button("📸 Analyze Another Item Photo", use_container_width=True, type="primary"):
-                    st.session_state.last_reported_found = None
-                    st.session_state.ai_extracted_item = None
-                    st.session_state.ai_uploaded_image_bytes = None
-                    st.rerun()
-            with col_b2:
-                if st.button("📋 View Master Inventory", use_container_width=True):
-                    st.session_state.last_reported_found = None
-                    st.session_state.ai_extracted_item = None
-                    st.session_state.ai_uploaded_image_bytes = None
-                    st.rerun()
+            st.markdown(f"#### 📦 Items Reported by Students ({len(student_items)})")
+            if not student_items:
+                st.info("No items currently in the student submission queue.")
+            else:
+                for item in student_items:
+                    with st.container(border=True):
+                        c_img, c_info, c_action = st.columns([1.2, 2.5, 1.5])
+                        
+                        with c_img:
+                            if item.get("image_base64"):
+                                try:
+                                    img_data = base64.b64decode(item["image_base64"])
+                                    st.image(img_data, caption=f"📸 {item.get('item_name')}", use_container_width=True)
+                                except Exception:
+                                    st.caption("⚠️ Error displaying encoded photo")
+                            elif item.get("image_url"):
+                                st.image(item["image_url"], caption=f"📸 {item.get('item_name')}", use_container_width=True)
+                            else:
+                                st.markdown("""
+                                <div style="background:#1e293b; padding:24px 10px; border-radius:8px; text-align:center; color:#94a3b8;">
+                                    📝 Text-Only Report<br><small>No photo attached</small>
+                                </div>
+                                """, unsafe_allow_html=True)
 
-        else:
-            col_v1, col_v2 = st.columns([1.4, 1])
-            with col_v1:
-                admin_photo = st.file_uploader(
-                    "📷 Upload Item Photo *",
-                    type=["jpg", "jpeg", "png", "webp"],
-                    help="Upload photo taken by Security Officer or Proctor."
-                )
-                admin_note = st.text_input(
-                    "🔍 Proctor / Security Notes & Observations",
-                    placeholder="e.g. Handed over by sweeper near Block C stairs, contains keys"
-                )
-                admin_loc = st.selectbox("📍 Found / Deposited Location *", CAMPUS_LOCATIONS)
+                        with c_info:
+                            st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`)")
+                            st.caption(f"🆔 **{item.get('item_id')}** • 📍 {item.get('location')} • 🎨 Color: **{item.get('color')}** • Brand: **{item.get('brand') or 'Generic'}**")
+                            st.write(f"📝 **Finder's Note:** *\"{item.get('description')}\"*")
+                            st.caption(f"👤 Reported by: **{item.get('reported_by_name')}** (ID: `{item.get('reported_by_id')}`) • Status: **{item.get('status')}**")
+                            if item.get("ai_analyzed"):
+                                st.success("✅ Previously AI-Analyzed & Verified by Proctor")
 
-            with col_v2:
-                if admin_photo:
-                    st.image(admin_photo, caption="📸 Inspector Photo Preview", use_container_width=True)
-                else:
-                    st.markdown("""
-                    <div style="border: 2px dashed #475569; border-radius: 12px; padding: 40px 16px; text-align: center; color: #94a3b8;">
-                        <span style="font-size: 2.8rem;">🔬</span><br>
-                        <b>Forensic Item Preview</b><br>
-                        <small>Upload an item photo to run AI Vision Analysis</small>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        with c_action:
+                            st.write("")
+                            if st.button("🤖 Run AI Analysis", key=f"ai_btn_{item.get('item_id')}", type="primary", use_container_width=True):
+                                # Extract image bytes
+                                img_bytes = b""
+                                if item.get("image_base64"):
+                                    try:
+                                        img_bytes = base64.b64decode(item["image_base64"])
+                                    except Exception:
+                                        img_bytes = b""
 
-            st.write("")
-            if st.button("✨ Run AI Vision Analysis & Extract Attributes", type="primary", use_container_width=True):
-                if not admin_photo and not admin_note.strip():
-                    st.error("Please upload a photo or write an observation note.")
-                else:
-                    img_bytes = admin_photo.getvalue() if admin_photo else b""
-                    st.session_state.ai_uploaded_image_bytes = img_bytes
-                    with st.spinner("🤖 AI Multimodal Vision analyzing visual geometry, brands, materials, and campus context..."):
-                        extracted = vision_extractor.analyze_image(
-                            image_bytes=img_bytes,
-                            user_note=admin_note.strip(),
-                            location_hint=admin_loc
-                        )
-                        st.session_state.ai_extracted_item = {
-                            **extracted,
-                            "location": admin_loc
-                        }
-                    st.success("✅ AI Vision Analysis Complete! Review details below:")
+                                with st.spinner("🤖 Multimodal AI analyzing photo & description..."):
+                                    analysis = vision_extractor.analyze_image(
+                                        image_bytes=img_bytes,
+                                        user_note=item.get("description", ""),
+                                        location_hint=item.get("location", "")
+                                    )
+                                    st.session_state[f"analysis_{item.get('item_id')}"] = analysis
+                                st.rerun()
 
-            # Review AI Extracted Attributes & Confirm
-            if st.session_state.ai_extracted_item:
-                ext = st.session_state.ai_extracted_item
-                st.markdown("---")
-                st.markdown("### 📋 AI Verified Specifications (Editable)")
+                        # If analysis exists for this item, show results and confirmation
+                        if f"analysis_{item.get('item_id')}" in st.session_state:
+                            analyzed = st.session_state[f"analysis_{item.get('item_id')}"]
+                            with st.expander(f"✨ AI Forensic Analysis for {item.get('item_id')}", expanded=True):
+                                ca1, ca2 = st.columns(2)
+                                with ca1:
+                                    edit_name = st.text_input("Verified Item Name:", value=analyzed.get("item_name", item.get("item_name")), key=f"n_{item.get('item_id')}")
+                                    cat_idx = ITEM_CATEGORIES.index(analyzed.get("category")) if analyzed.get("category") in ITEM_CATEGORIES else 0
+                                    edit_cat = st.selectbox("Verified Category:", ITEM_CATEGORIES, index=cat_idx, key=f"c_{item.get('item_id')}")
+                                    edit_brand = st.text_input("Detected Brand:", value=analyzed.get("brand", item.get("brand")), key=f"b_{item.get('item_id')}")
+                                with ca2:
+                                    edit_col = st.text_input("Dominant Color:", value=analyzed.get("color", item.get("color")), key=f"col_{item.get('item_id')}")
+                                    edit_loc = st.selectbox("Location:", CAMPUS_LOCATIONS, index=CAMPUS_LOCATIONS.index(item.get("location")) if item.get("location") in CAMPUS_LOCATIONS else 0, key=f"l_{item.get('item_id')}")
+                                    edit_cond = st.text_input("Physical Condition:", value=analyzed.get("condition", "Good condition"), key=f"cnd_{item.get('item_id')}")
 
-                c_e1, c_e2 = st.columns(2)
-                with c_e1:
-                    ext_name = st.text_input("Item Name (AI Extracted):", value=ext.get("item_name", ""))
-                    cat_idx = ITEM_CATEGORIES.index(ext.get("category")) if ext.get("category") in ITEM_CATEGORIES else 0
-                    ext_category = st.selectbox("Category:", ITEM_CATEGORIES, index=cat_idx)
-                    ext_brand = st.text_input("Brand / Model (AI Detected):", value=ext.get("brand", ""))
-                
-                with c_e2:
-                    ext_color = st.text_input("Color (AI Palette):", value=ext.get("color", ""))
-                    ext_loc = st.selectbox("Location:", CAMPUS_LOCATIONS, index=CAMPUS_LOCATIONS.index(ext.get("location", CAMPUS_LOCATIONS[0])))
-                    ext_cond = st.text_input("Physical Condition:", value=ext.get("condition", "Good condition"))
+                                edit_desc = st.text_area("Official Proctorial AI Description:", value=analyzed.get("ai_description", ""), key=f"d_{item.get('item_id')}", height=90)
 
-                ext_desc = st.text_area("Official Proctorial AI Description:", value=ext.get("ai_description", ""), height=105)
+                                if st.button("🚀 Confirm AI Verification & Auto-Cross-Match", key=f"conf_{item.get('item_id')}", type="primary"):
+                                    updated_payload = {
+                                        "item_name": edit_name.strip(),
+                                        "category": edit_cat,
+                                        "brand": edit_brand.strip(),
+                                        "color": edit_col.strip(),
+                                        "description": f"{edit_desc.strip()} (Verified: {edit_cond.strip()})",
+                                        "location": edit_loc,
+                                        "ai_analyzed": True
+                                    }
+                                    updated_item = db.update_found_item(item.get("item_id"), updated_payload)
+                                    
+                                    # Trigger AI cross-matching against lost items
+                                    matches = ai_matcher.run_matching_for_found_item(updated_item or item)
+                                    top_matches = [m for m in matches if m.final_match_score >= 65.0]
 
-                col_sub1, col_sub2 = st.columns([2, 1])
-                with col_sub1:
-                    if st.button("🚀 Register Item into Master Registry & Run Auto-Cross-Match", type="primary", use_container_width=True):
-                        if not ext_name.strip() or not ext_color.strip():
-                            st.error("Item Name and Color are required.")
-                        else:
-                            item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
-                            new_fnd = FoundItem(
-                                item_id=item_id,
-                                item_name=ext_name.strip(),
-                                category=ext_category,
-                                brand=ext_brand.strip(),
-                                color=ext_color.strip(),
-                                description=f"{ext_desc.strip()} (Condition: {ext_cond.strip()})",
-                                location=ext_loc,
-                                found_at=datetime.datetime.now().isoformat(),
-                                source="ADMIN_AI_VISION",
-                                reported_by_id=curr_id or "USR-ADMIN-01",
-                                reported_by_name=current_user.get("name", "Chief Proctor"),
-                                status="FOUND"
-                            )
-                            saved = db.add_found_item(new_fnd.model_dump())
-                            matches = ai_matcher.run_matching_for_found_item(saved)
-                            
-                            match_alert = None
-                            if matches and matches[0].final_match_score >= 65.0:
-                                match_alert = f"Instant Cross-Match: Matches student lost report '{matches[0].lost_item.item_name}' (Student: {matches[0].lost_item.user_name}) with {matches[0].final_match_score}% confidence!"
+                                    del st.session_state[f"analysis_{item.get('item_id')}"]
+                                    if top_matches:
+                                        st.balloons()
+                                        st.success(f"🎉 Item verified! Instantly matched with student lost report '{top_matches[0].lost_item.item_name}' (Student: {top_matches[0].lost_item.user_name}) at {top_matches[0].final_match_score}% confidence!")
+                                    else:
+                                        st.success("✅ Item verified and updated in master inventory!")
+                                    st.rerun()
 
-                            st.session_state.last_reported_found = {
-                                "item_id": item_id,
-                                "item_name": ext_name.strip(),
-                                "location": ext_loc,
-                                "match_alert": match_alert
-                            }
-                            st.session_state.ai_extracted_item = None
-                            st.rerun()
+        # TAB 2: DIRECT ADMIN PHOTO INTAKE
+        with admin_tab2:
+            st.markdown("#### 📷 Direct Office Intake (Walk-in / Campus Security)")
+            if st.session_state.last_reported_found:
+                rep_f = st.session_state.last_reported_found
+                st.markdown(f"""
+                <div class="success-card">
+                    <h3 style="color:#10b981; margin-bottom:8px;">✅ Item Cataloged in Campus Registry!</h3>
+                    <p style="color:#e2e8f0; font-size:1.1rem; margin-bottom:4px;">
+                        Assigned Item ID: <b style="color:#38bdf8; font-family:monospace;">{rep_f['item_id']}</b>
+                    </p>
+                    <p style="color:#94a3b8; font-size:0.95rem;">
+                        Item: <b>{rep_f['item_name']}</b> • Location: <b>{rep_f['location']}</b>
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
-                with col_sub2:
-                    if st.button("🔄 Discard & Reset", use_container_width=True):
+                if rep_f.get("match_alert"):
+                    st.info(f"🧠 {rep_f['match_alert']}")
+
+                st.write("")
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    if st.button("📸 Analyze Another Item Photo", use_container_width=True, type="primary"):
+                        st.session_state.last_reported_found = None
                         st.session_state.ai_extracted_item = None
                         st.session_state.ai_uploaded_image_bytes = None
                         st.rerun()
+                with col_b2:
+                    if st.button("📋 View Master Inventory", use_container_width=True):
+                        st.session_state.last_reported_found = None
+                        st.session_state.ai_extracted_item = None
+                        st.session_state.ai_uploaded_image_bytes = None
+                        st.rerun()
+
+            else:
+                col_v1, col_v2 = st.columns([1.4, 1])
+                with col_v1:
+                    admin_photo = st.file_uploader(
+                        "📷 Upload Item Photo *",
+                        type=["jpg", "jpeg", "png", "webp"],
+                        help="Upload photo taken by Security Officer or Proctor."
+                    )
+                    admin_note = st.text_input(
+                        "🔍 Proctor / Security Notes & Observations",
+                        placeholder="e.g. Handed over by sweeper near Block C stairs, contains keys"
+                    )
+                    admin_loc = st.selectbox("📍 Found / Deposited Location *", CAMPUS_LOCATIONS, key="admin_direct_loc")
+
+                with col_v2:
+                    if admin_photo:
+                        st.image(admin_photo, caption="📸 Inspector Photo Preview", use_container_width=True)
+                    else:
+                        st.markdown("""
+                        <div style="border: 2px dashed #475569; border-radius: 12px; padding: 40px 16px; text-align: center; color: #94a3b8;">
+                            <span style="font-size: 2.8rem;">🔬</span><br>
+                            <b>Forensic Item Preview</b><br>
+                            <small>Upload an item photo to run AI Vision Analysis</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                st.write("")
+                if st.button("✨ Run AI Vision Analysis & Extract Attributes", type="primary", use_container_width=True, key="admin_direct_run"):
+                    if not admin_photo and not admin_note.strip():
+                        st.error("Please upload a photo or write an observation note.")
+                    else:
+                        img_bytes = admin_photo.getvalue() if admin_photo else b""
+                        st.session_state.ai_uploaded_image_bytes = img_bytes
+                        with st.spinner("🤖 AI Multimodal Vision analyzing visual geometry, brands, materials, and campus context..."):
+                            extracted = vision_extractor.analyze_image(
+                                image_bytes=img_bytes,
+                                user_note=admin_note.strip(),
+                                location_hint=admin_loc
+                            )
+                            st.session_state.ai_extracted_item = {
+                                **extracted,
+                                "location": admin_loc
+                            }
+                        st.success("✅ AI Vision Analysis Complete! Review details below:")
+
+                # Review AI Extracted Attributes & Confirm
+                if st.session_state.ai_extracted_item:
+                    ext = st.session_state.ai_extracted_item
+                    st.markdown("---")
+                    st.markdown("### 📋 AI Verified Specifications (Editable)")
+
+                    c_e1, c_e2 = st.columns(2)
+                    with c_e1:
+                        ext_name = st.text_input("Item Name (AI Extracted):", value=ext.get("item_name", ""), key="ad_ext_name")
+                        cat_idx = ITEM_CATEGORIES.index(ext.get("category")) if ext.get("category") in ITEM_CATEGORIES else 0
+                        ext_category = st.selectbox("Category:", ITEM_CATEGORIES, index=cat_idx, key="ad_ext_cat")
+                        ext_brand = st.text_input("Brand / Model (AI Detected):", value=ext.get("brand", ""), key="ad_ext_br")
+                    
+                    with c_e2:
+                        ext_color = st.text_input("Color (AI Palette):", value=ext.get("color", ""), key="ad_ext_col")
+                        ext_loc = st.selectbox("Location:", CAMPUS_LOCATIONS, index=CAMPUS_LOCATIONS.index(ext.get("location", CAMPUS_LOCATIONS[0])), key="ad_ext_loc")
+                        ext_cond = st.text_input("Physical Condition:", value=ext.get("condition", "Good condition"), key="ad_ext_cnd")
+
+                    ext_desc = st.text_area("Official Proctorial AI Description:", value=ext.get("ai_description", ""), height=105, key="ad_ext_desc")
+
+                    col_sub1, col_sub2 = st.columns([2, 1])
+                    with col_sub1:
+                        if st.button("🚀 Register Item into Master Registry & Run Auto-Cross-Match", type="primary", use_container_width=True, key="ad_save_btn"):
+                            if not ext_name.strip() or not ext_color.strip():
+                                st.error("Item Name and Color are required.")
+                            else:
+                                item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
+                                
+                                img_b64 = None
+                                if st.session_state.ai_uploaded_image_bytes:
+                                    img_b64 = base64.b64encode(st.session_state.ai_uploaded_image_bytes).decode("utf-8")
+
+                                new_fnd = FoundItem(
+                                    item_id=item_id,
+                                    item_name=ext_name.strip(),
+                                    category=ext_category,
+                                    brand=ext_brand.strip(),
+                                    color=ext_color.strip(),
+                                    description=f"{ext_desc.strip()} (Condition: {ext_cond.strip()})",
+                                    location=ext_loc,
+                                    found_at=datetime.datetime.now().isoformat(),
+                                    source="ADMIN_AI_VISION",
+                                    reported_by_id=curr_id or "USR-ADMIN-01",
+                                    reported_by_name=current_user.get("name", "Chief Proctor"),
+                                    image_base64=img_b64,
+                                    ai_analyzed=True,
+                                    status="FOUND"
+                                )
+                                saved = db.add_found_item(new_fnd.model_dump())
+                                matches = ai_matcher.run_matching_for_found_item(saved)
+                                
+                                match_alert = None
+                                if matches and matches[0].final_match_score >= 65.0:
+                                    match_alert = f"Instant Cross-Match: Matches student lost report '{matches[0].lost_item.item_name}' (Student: {matches[0].lost_item.user_name}) with {matches[0].final_match_score}% confidence!"
+
+                                st.session_state.last_reported_found = {
+                                    "item_id": item_id,
+                                    "item_name": ext_name.strip(),
+                                    "location": ext_loc,
+                                    "match_alert": match_alert
+                                }
+                                st.session_state.ai_extracted_item = None
+                                st.rerun()
+
+                    with col_sub2:
+                        if st.button("🔄 Discard & Reset", use_container_width=True, key="ad_reset_btn"):
+                            st.session_state.ai_extracted_item = None
+                            st.session_state.ai_uploaded_image_bytes = None
+                            st.rerun()
 
     elif menu == "🛡️ Claims Verification Desk":
         st.subheader("🛡️ GL Bajaj Proctorial Board Verification Desk")

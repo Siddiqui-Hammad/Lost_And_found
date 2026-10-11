@@ -20,6 +20,7 @@ class FoundItemCreate(BaseModel):
     location: str
     found_at: str
     image_url: Optional[str] = None
+    image_base64: Optional[str] = None
 
 class ItemStatusUpdate(BaseModel):
     status: str
