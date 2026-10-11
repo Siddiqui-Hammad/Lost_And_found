@@ -9,9 +9,10 @@
 ## 🌟 1. System Overview & Architecture
 
 **TRACE AI** solves the chaotic campus lost-and-found problem by marrying a centralized web management platform with:
-1. **Multimodal AI Vision Snap & Report**: When a student finds an item on campus, they don't have to fill out tedious forms—they simply take or upload a photo. The system automatically identifies the item, extracts attributes (name, category, brand, color, condition), and crafts an AI detailed description.
-2. **AI-Powered Multi-Attribute Semantic Cross-Matching**: 6-factor composite algorithm computing semantic similarity, category match, location proximity, color harmony, time interval, and brand confidence.
-3. **Dedicated Student vs Admin (Proctorial Board) Portals**: Distinct login/signup gateways tailored for GL Bajaj students and college administrative authorities.
+1. **Admin AI Vision Item Intake & Forensic Analyzer**: When lost or dropped items are turned into the **Proctorial Board or Campus Security**, administrators upload item photos. The Multimodal AI automatically extracts item specifications, category, brand, dominant colors, condition, and generates an official campus description.
+2. **Simplified Student Portal**: Students can report lost or found items, view personalized AI matches, and file verified ownership claims with proof.
+3. **AI-Powered Multi-Attribute Semantic Cross-Matching**: 6-factor composite algorithm computing semantic similarity, category match, location proximity, color harmony, time interval, and brand confidence.
+4. **Dedicated Student vs Admin (Proctorial Board) Portals**: Distinct login/signup gateways tailored for GL Bajaj students and college administrative authorities.
 
 ### Core Architecture
 ```
