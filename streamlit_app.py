@@ -22,54 +22,176 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Dark Tech Styling
+# Dark Tech Styling & Ultra-Smooth UI Transitions
 st.markdown("""
 <style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Global Smooth Typography & Elements */
+    .stApp {
+        background: radial-gradient(circle at 15% 15%, #0f172a 0%, #020617 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+    
     .main-header {
-        font-size: 2.2rem;
+        font-size: 2.25rem;
         font-weight: 900;
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0px;
+        margin-bottom: 2px;
+        animation: fadeIn 0.4s ease-out;
     }
     .tagline {
         color: #94a3b8;
-        font-size: 1.05rem;
-        margin-bottom: 1.5rem;
+        font-size: 1.02rem;
+        margin-bottom: 1.4rem;
+        animation: fadeIn 0.5s ease-out;
     }
-    .oled-box {
-        background-color: #050b14;
-        color: #38bdf8;
-        font-family: 'Courier New', monospace;
-        border: 2px solid #334155;
+    
+    /* Interactive Button Transitions */
+    .stButton > button {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1.5px) !important;
+        box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25) !important;
+    }
+    .stButton > button:active {
+        transform: translateY(0.5px) !important;
+    }
+    
+    /* Glassmorphism & Metric Cards */
+    div[data-testid="stMetric"] {
+        background: rgba(15, 23, 42, 0.65) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 14px !important;
+        padding: 14px 18px !important;
+        backdrop-filter: blur(8px) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+        transition: transform 0.2s ease, border-color 0.2s ease !important;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-2px) !important;
+        border-color: rgba(56, 189, 248, 0.45) !important;
+    }
+    
+    /* Containers / Cards */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
+        transition: all 0.2s ease-in-out;
     }
+    
+    /* Role Badges */
     .role-badge {
         display: inline-block;
-        padding: 4px 10px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 0.03em;
     }
     .badge-student {
         background-color: rgba(56, 189, 248, 0.15);
         color: #38bdf8;
-        border: 1px solid #0284c7;
+        border: 1px solid rgba(56, 189, 248, 0.4);
     }
     .badge-admin {
         background-color: rgba(244, 63, 94, 0.15);
         color: #fb7185;
-        border: 1px solid #e11d48;
+        border: 1px solid rgba(244, 63, 94, 0.4);
     }
     .success-card {
-        background-color: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08));
+        border: 1px solid rgba(16, 185, 129, 0.4);
         border-radius: 16px;
         padding: 24px;
         text-align: center;
+        box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
+        animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    /* Forensic Blueprint HUD */
+    .forensic-hud {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85));
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        margin: 12px 0 18px 0;
+        animation: fadeIn 0.35s ease-out;
+    }
+    .hud-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #38bdf8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+        padding-bottom: 8px;
+    }
+    .spec-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.15);
+        font-size: 0.88rem;
+    }
+    .spec-key {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+    .spec-val {
+        color: #f8fafc;
+        font-weight: 700;
+        text-align: right;
+        margin-left: 12px;
+    }
+    .spec-tag {
+        display: inline-block;
+        background: rgba(56, 189, 248, 0.12);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 3px;
+    }
+    .mark-tag {
+        display: inline-block;
+        background: rgba(239, 68, 68, 0.14);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        padding: 4px 11px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 3px;
+    }
+    .challenge-card {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-top: 14px;
+    }
+    .challenge-q {
+        color: #fef3c7;
+        font-size: 0.88rem;
+        padding: 5px 0;
+        line-height: 1.4;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,6 +228,141 @@ ITEM_CATEGORIES = [
     "Electronics", "ID Card", "Wallet", "Keys", "Bag", "Books",
     "Bottle", "Watch", "Clothing", "Documents", "Accessories", "Other"
 ]
+
+def render_forensic_specs_hud(specs: dict):
+    """
+    Renders high-tech Forensic Item Specification Blueprint HUD.
+    Displays exhaustive hardware architecture for earbuds, cases, electronics, and secret proctor verification challenges.
+    """
+    if not specs or not isinstance(specs, dict):
+        return
+    
+    spec_type = specs.get("specs_type", "")
+    is_earbuds = (
+        spec_type == "earbuds_case" or 
+        "case_specs" in specs or 
+        "earbud_specs" in specs or 
+        "earbud" in str(specs).lower() or 
+        "airpod" in str(specs).lower() or 
+        "airdopes" in str(specs).lower()
+    )
+    
+    if is_earbuds:
+        cs = specs.get("case_specs", {})
+        eb = specs.get("earbud_specs", {})
+        
+        case_items = [
+            ("📦 Case Form Factor", cs.get("form_factor") or specs.get("case_form_factor") or "Pill-shaped compact charging pod"),
+            ("🛡️ Finish & Material", cs.get("material_and_finish") or specs.get("case_finish_material") or "Matte ABS polymer chassis"),
+            ("⚡ Charging Port", cs.get("charging_port") or specs.get("charging_port") or "USB Type-C"),
+            ("💡 LED Indicators", cs.get("led_indicators") or specs.get("led_indicators") or "Battery status LED indicator"),
+            ("🧲 Hinge & Lid Mechanism", cs.get("hinge_and_latch") or specs.get("hinge_and_lid") or "Reinforced magnetic closure"),
+            ("🧥 Protective Sleeve", cs.get("protective_sleeve") or specs.get("protective_sleeve") or "Standard naked case"),
+        ]
+        
+        bud_items = [
+            ("🎵 Earbud Form Factor", eb.get("earbud_style") or specs.get("earbuds_style") or "In-ear stem style"),
+            ("👥 Docked Status", eb.get("docking_status") or specs.get("docked_status") or "Both Left & Right docked"),
+            ("🔘 Silicone Ear Tips", eb.get("silicone_tips") or specs.get("ear_tips") or "Medium silicone gel tips"),
+            ("👆 Sensor Controls", eb.get("controls_sensors") or specs.get("controls_and_sensors") or "Capacitive touch sensors"),
+            ("🎙️ Acoustic / Mic Mesh", eb.get("microphone_mesh") or specs.get("mesh_and_grilles") or "Micro-perforated acoustic filter"),
+            ("🟡 Charging Contacts", eb.get("charging_contacts") or specs.get("charging_contacts") or "Dual gold pogo-pin terminals"),
+        ]
+        
+        marks = specs.get("distinguishing_marks") or specs.get("forensic_marks") or []
+        questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
+        
+        case_rows_html = "".join([
+            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
+            for k, v in case_items
+        ])
+        
+        bud_rows_html = "".join([
+            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
+            for k, v in bud_items
+        ])
+        
+        marks_html = "".join([f'<span class="mark-tag">🔍 {m}</span>' for m in marks]) if marks else '<span style="color:#94a3b8; font-size:0.85rem;">Standard cosmetic condition</span>'
+        
+        questions_html = "".join([
+            f'<div class="challenge-q">❓ <b>Challenge #{i+1}:</b> {q}</div>'
+            for i, q in enumerate(questions)
+        ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant about case color, charging port, and internal earbud markings.</div>'
+        
+        hud_html = f"""
+        <div class="forensic-hud">
+            <div class="hud-title">🎧 TWS Earbuds & Charging Case Forensic Blueprint</div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+                <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                    <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📦 Charging Case Architecture</div>
+                    {case_rows_html}
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(129, 140, 248, 0.2);">
+                    <div style="color:#818cf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">🎵 Earbuds Hardware Anatomy</div>
+                    {bud_rows_html}
+                </div>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks & Wear:</div>
+                <div>{marks_html}</div>
+            </div>
+            
+            <div class="challenge-card">
+                <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</div>
+                {questions_html}
+            </div>
+        </div>
+        """
+        st.markdown(hud_html, unsafe_allow_html=True)
+    
+    else:
+        raw_attrs = specs.get("item_attributes")
+        if not raw_attrs:
+            raw_attrs = {
+                k.replace("_", " ").title(): v
+                for k, v in specs.items()
+                if k not in ["specs_type", "distinguishing_marks", "forensic_marks", "verification_questions", "ownership_challenge_questions", "item_subtype"]
+                and isinstance(v, (str, int, float))
+            }
+        
+        marks = specs.get("distinguishing_marks") or specs.get("forensic_marks") or []
+        questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
+        subtype = specs.get("item_subtype", "Forensic Item Specification Blueprint")
+        
+        rows_html = "".join([
+            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
+            for k, v in raw_attrs.items()
+        ]) if raw_attrs else '<div class="spec-row"><span class="spec-key">Item Profile</span><span class="spec-val">Standard Physical Specimen</span></div>'
+        
+        marks_html = "".join([f'<span class="mark-tag">🔍 {m}</span>' for m in marks]) if marks else '<span style="color:#94a3b8; font-size:0.85rem;">Standard cosmetic condition</span>'
+        questions_html = "".join([
+            f'<div class="challenge-q">❓ <b>Challenge #{i+1}:</b> {q}</div>'
+            for i, q in enumerate(questions)
+        ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant to describe brand markings, stickers, or internal contents.</div>'
+        
+        hud_html = f"""
+        <div class="forensic-hud">
+            <div class="hud-title">🔬 {subtype}</div>
+            
+            <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 12px;">
+                <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📐 Hardware Attributes & Geometry</div>
+                {rows_html}
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks:</div>
+                <div>{marks_html}</div>
+            </div>
+            
+            <div class="challenge-card">
+                <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges:</div>
+                {questions_html}
+            </div>
+        </div>
+        """
+        st.markdown(hud_html, unsafe_allow_html=True)
 
 # App Header
 st.markdown('<div class="main-header">📡 TRACE AI — GL Bajaj Smart Lost & Found</div>', unsafe_allow_html=True)
@@ -262,7 +519,7 @@ if st.session_state.auth_user is None:
 # -------------------------------------------------------------
 # LOGGED-IN APPLICATION SHELL
 # -------------------------------------------------------------
-current_user = st.session_state.auth_user
+current_user = st.session_state.auth_user or {}
 is_admin = current_user.get("role") == "ADMIN"
 
 curr_email = current_user.get("email", "").strip().lower()
@@ -625,6 +882,9 @@ if not is_admin:
                         st.markdown(f"**Lost:** `{m.lost_item.item_name}` ↔ **Found:** `{m.found_item.item_name}`")
                         st.write(f"📍 {m.lost_item.location} ↔ {m.found_item.location} | Source: **{m.found_item.source}**")
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
+                        if m.found_item.detailed_specs:
+                            with st.expander("🔬 View Found Item Hardware Specifications", expanded=False):
+                                render_forensic_specs_hud(m.found_item.detailed_specs)
                     with c3:
                         with st.popover("🙋 File Claim"):
                             st.markdown(f"**Claim Item:** {m.lost_item.item_name}")
@@ -766,6 +1026,9 @@ else:
                             st.caption(f"👤 Reported by: **{item.get('reported_by_name')}** (ID: `{item.get('reported_by_id')}`) • Status: **{item.get('status')}**")
                             if item.get("ai_analyzed"):
                                 st.success("✅ Previously AI-Analyzed & Verified by Proctor")
+                            if item.get("detailed_specs"):
+                                with st.expander("🔬 View Verified Forensic Blueprint", expanded=False):
+                                    render_forensic_specs_hud(item["detailed_specs"])
 
                         with c_action:
                             st.write("")
@@ -791,6 +1054,9 @@ else:
                         if f"analysis_{item.get('item_id')}" in st.session_state:
                             analyzed = st.session_state[f"analysis_{item.get('item_id')}"]
                             with st.expander(f"✨ AI Forensic Analysis for {item.get('item_id')}", expanded=True):
+                                if analyzed.get("detailed_specs"):
+                                    render_forensic_specs_hud(analyzed.get("detailed_specs"))
+
                                 ca1, ca2 = st.columns(2)
                                 with ca1:
                                     edit_name = st.text_input("Verified Item Name:", value=analyzed.get("item_name", item.get("item_name")), key=f"n_{item.get('item_id')}")
@@ -812,7 +1078,8 @@ else:
                                         "color": edit_col.strip(),
                                         "description": f"{edit_desc.strip()} (Verified: {edit_cond.strip()})",
                                         "location": edit_loc,
-                                        "ai_analyzed": True
+                                        "ai_analyzed": True,
+                                        "detailed_specs": analyzed.get("detailed_specs")
                                     }
                                     updated_item = db.update_found_item(item.get("item_id"), updated_payload)
                                     
@@ -912,6 +1179,10 @@ else:
                 if st.session_state.ai_extracted_item:
                     ext = st.session_state.ai_extracted_item
                     st.markdown("---")
+                    
+                    if ext.get("detailed_specs"):
+                        render_forensic_specs_hud(ext.get("detailed_specs"))
+
                     st.markdown("### 📋 AI Verified Specifications (Editable)")
 
                     c_e1, c_e2 = st.columns(2)
@@ -954,6 +1225,7 @@ else:
                                     reported_by_name=current_user.get("name", "Chief Proctor"),
                                     image_base64=img_b64,
                                     ai_analyzed=True,
+                                    detailed_specs=ext.get("detailed_specs"),
                                     status="FOUND"
                                 )
                                 saved = db.add_found_item(new_fnd.model_dump())
@@ -985,12 +1257,16 @@ else:
             st.info("No claims currently submitted.")
         else:
             for c in claims:
+                found_item = db.get_found_item(c.get("found_item_id"))
                 with st.container(border=True):
                     col_i, col_a = st.columns([3, 1.2])
                     with col_i:
                         st.markdown(f"**Item:** `{c.get('item_name')}` | Status: **{c.get('status')}**")
                         st.write(f"Claimant: **{c.get('student_name')}** ({c.get('student_email')} • Roll: `{c.get('student_id')}`)")
-                        st.markdown(f"🔒 **Secret Proof:** *\"{c.get('answers')}\"*")
+                        st.markdown(f"🔒 **Secret Proof Provided by Student:** *\"{c.get('answers')}\"*")
+                        if found_item and found_item.get("detailed_specs"):
+                            with st.expander("🔬 Cross-Reference Forensic Blueprint & Proctor Challenges", expanded=False):
+                                render_forensic_specs_hud(found_item.get("detailed_specs"))
                     with col_a:
                         if c.get("status") == "PENDING":
                             if st.button("✅ Approve & Release", key=f"app_{c.get('claim_id')}", type="primary"):
@@ -1014,6 +1290,9 @@ else:
             with st.container(border=True):
                 st.markdown(f"**{m.final_match_score}% ({m.match_level})**: Lost `{m.lost_item.item_name}` ↔ Found `{m.found_item.item_name}`")
                 st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
+                if m.found_item.detailed_specs:
+                    with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
+                        render_forensic_specs_hud(m.found_item.detailed_specs)
 
     elif menu == "📋 Master Inventory & Logs":
         st.subheader("📋 Master Campus Inventory (GLBITM)")

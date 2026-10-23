@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 # Valid statuses: LOST, FOUND, MATCHED, CLAIM_PENDING, VERIFIED, RETURNED, REJECTED, RESOLVED
@@ -18,6 +18,7 @@ class LostItem(BaseModel):
     location: str
     lost_at: str
     image_url: Optional[str] = None
+    detailed_specs: Optional[Dict[str, Any]] = None
     status: str = "LOST"
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
@@ -38,5 +39,6 @@ class FoundItem(BaseModel):
     reported_by_id: Optional[str] = None
     reported_by_name: Optional[str] = None
     ai_analyzed: bool = False
+    detailed_specs: Optional[Dict[str, Any]] = None
     status: str = "FOUND"
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())

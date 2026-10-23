@@ -273,6 +273,24 @@ SEED_FOUND_ITEMS: List[Dict[str, Any]] = [
         "reported_by_id": "USR-STUDENT-03",
         "reported_by_name": "Aman Gupta (AI Vision)",
         "status": "FOUND",
+        "detailed_specs": {
+            "specs_type": "card_wallet",
+            "item_attributes": {
+                "Material": "Full-grain genuine black leather with bi-fold closure",
+                "Internal Slots": "6 card sleeves + dual paper currency partitions + ID mesh window",
+                "Embossed Stamp": "Subtle debossed Wildhorn horned logo on lower right front",
+                "Identification": "GL Bajaj College Student ID card visible in window slot"
+            },
+            "distinguishing_marks": [
+                "Slight edge burnishing wear along main folding crease",
+                "Silver metro travel smart card inside left card slot"
+            ],
+            "verification_questions": [
+                "Whose college ID or what card was inside the transparent mesh slot?",
+                "What bank or metro card was kept inside the card sleeves?",
+                "How many currency partitions does the wallet have?"
+            ]
+        },
         "created_at": "2026-10-06T14:15:00"
     },
     {
@@ -291,6 +309,32 @@ SEED_FOUND_ITEMS: List[Dict[str, Any]] = [
         "reported_by_id": "USR-STUDENT-03",
         "reported_by_name": "Aman Gupta (AI Vision)",
         "status": "FOUND",
+        "detailed_specs": {
+            "specs_type": "earbuds_case",
+            "case_form_factor": "Oval pebble clamshell pod with flip-open lid",
+            "case_finish_material": "Matte white ABS polymer chassis with black shockproof silicone sleeve",
+            "charging_port": "USB Type-C port on lower rear base",
+            "led_indicators": "Quad battery status micro-LEDs (4-stage white pulse)",
+            "hinge_and_lid": "Spring-assisted magnetic hinge with crisp audible latch snap",
+            "protective_sleeve": "Removable black silicone bumper skin with metal carabiner eyelet",
+            "earbuds_style": "In-ear ergonomic stem style with capacitive touch groove",
+            "docked_status": "Both Left (L) and Right (R) earbuds docked in charging cradle",
+            "ear_tips": "Medium (M) translucent smoke-grey silicone gel ear tips",
+            "controls_and_sensors": "Multi-function touch sensor area on upper stem",
+            "mesh_and_grilles": "Black micro-perforated acoustic speaker nozzle & ENx mic filter",
+            "charging_contacts": "Dual gold-plated pogo pin terminals per earbud chamber",
+            "distinguishing_marks": [
+                "Small hairline scratch near hinge on underside of white case",
+                "Black silicone protective sleeve with carabiner ring loop",
+                "Subtle laser-etched boAt insignia on front lid"
+            ],
+            "verification_questions": [
+                "What color is the silicone protective sleeve covering the case?",
+                "What type of charging port is on the charging case?",
+                "Are both Left and Right earbuds present inside the case?",
+                "Does the case have a carabiner clip or lanyard attachment?"
+            ]
+        },
         "created_at": "2026-10-05T15:10:00"
     },
     {
@@ -309,6 +353,24 @@ SEED_FOUND_ITEMS: List[Dict[str, Any]] = [
         "reported_by_id": "USR-STUDENT-02",
         "reported_by_name": "Priya Verma",
         "status": "FOUND",
+        "detailed_specs": {
+            "specs_type": "category_spec",
+            "item_attributes": {
+                "Model Number": "Casio ClassWiz FX-991EX Natural Display",
+                "Form Factor": "Hard plastic sliding protective cover (Black/White checkered texture)",
+                "Power Source": "Dual power: Solar cell panel on upper right + LR44 backup cell",
+                "Display Type": "High-resolution 192x63 dot-matrix LCD"
+            },
+            "distinguishing_marks": [
+                "Handwritten initials 'AK' in permanent marker on inside of slide cover",
+                "Slight scuff on lower left 'ON' key bezel"
+            ],
+            "verification_questions": [
+                "Are there any handwritten initials or name written inside the slide case?",
+                "What is the exact model number of the Casio calculator?",
+                "Does it have the hard slide-on protective cover attached?"
+            ]
+        },
         "created_at": "2026-10-04T12:00:00"
     },
     {

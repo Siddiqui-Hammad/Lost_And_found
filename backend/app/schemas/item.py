@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 
 class LostItemCreate(BaseModel):
     item_name: str
@@ -10,6 +10,7 @@ class LostItemCreate(BaseModel):
     location: str
     lost_at: str
     image_url: Optional[str] = None
+    detailed_specs: Optional[Dict[str, Any]] = None
 
 class FoundItemCreate(BaseModel):
     item_name: Optional[str] = "Found Item (Pending AI Inspection)"
@@ -21,6 +22,7 @@ class FoundItemCreate(BaseModel):
     found_at: str
     image_url: Optional[str] = None
     image_base64: Optional[str] = None
+    detailed_specs: Optional[Dict[str, Any]] = None
 
 class ItemStatusUpdate(BaseModel):
     status: str
