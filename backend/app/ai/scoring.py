@@ -33,6 +33,20 @@ def compute_color_score(col1: str, col2: str) -> float:
         return 100.0
     if c1 in c2 or c2 in c1:
         return 85.0
+    
+    # Token-based color matching
+    import re
+    tokens1 = set(re.findall(r"\b[a-z]+\b", c1))
+    tokens2 = set(re.findall(r"\b[a-z]+\b", c2))
+    color_palette = {
+        "black", "white", "grey", "gray", "blue", "red", "green",
+        "yellow", "orange", "brown", "silver", "gold", "pink", "purple",
+        "charcoal", "navy", "matte", "glossy", "tan", "beige"
+    }
+    overlap = (tokens1 & tokens2) & color_palette
+    if overlap:
+        return 90.0 if len(overlap) > 1 else 80.0
+
     return 20.0
 
 def compute_brand_score(b1: Optional[str], b2: Optional[str]) -> float:
