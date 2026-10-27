@@ -3,6 +3,9 @@ import datetime
 import uuid
 import base64
 import io
+import json
+import hashlib
+import os
 import plotly.express as px
 from collections import Counter
 
@@ -12,7 +15,23 @@ from backend.app.models.claim import Claim
 from backend.app.models.user import User
 from backend.app.ai.matcher import ai_matcher
 from backend.app.ai.vision_extractor import vision_extractor
+from backend.app.ai.gemini_intelligence import gemini_intel
 from backend.app.config import settings
+
+def generate_qr_code_base64(data: str) -> str:
+    """Generates a high-contrast printable QR code in base64 format for custody slips."""
+    try:
+        import qrcode
+        qr = qrcode.QRCode(version=1, box_size=4, border=2)
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#0f172a", back_color="#ffffff")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception as e:
+        print(f"[QRCode Error]: {e}")
+        return ""
 
 # Page Configuration
 st.set_page_config(
@@ -192,6 +211,75 @@ st.markdown("""
         font-size: 0.88rem;
         padding: 5px 0;
         line-height: 1.4;
+    }
+    
+    /* AI Forensic Dossier & Reports */
+    .ai-dossier {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.85));
+        border: 1px solid rgba(129, 140, 248, 0.4);
+        border-radius: 14px;
+        padding: 18px 22px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(129, 140, 248, 0.15);
+        margin: 14px 0;
+        animation: fadeIn 0.3s ease-out;
+    }
+    .dossier-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(129, 140, 248, 0.25);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    .dossier-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #818cf8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .dossier-pill {
+        background: rgba(129, 140, 248, 0.2);
+        color: #c7d2fe;
+        border: 1px solid rgba(129, 140, 248, 0.4);
+        padding: 2px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: monospace;
+    }
+    
+    /* Printable Custody Evidence Tag */
+    .custody-tag {
+        background: #ffffff;
+        color: #0f172a;
+        border: 2px dashed #475569;
+        border-radius: 8px;
+        padding: 20px;
+        font-family: 'Courier New', monospace;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        margin: 14px 0;
+    }
+    .custody-header {
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 8px;
+        text-align: center;
+        font-weight: 900;
+        letter-spacing: 1px;
+    }
+    
+    /* Conversational AI Chat */
+    .chat-bubble-ai {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.85));
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        border-left: 4px solid #38bdf8;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 12px 0;
+        color: #f1f5f9;
+        line-height: 1.5;
+        animation: fadeIn 0.35s ease-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -384,6 +472,321 @@ def render_forensic_specs_hud(specs: dict):
         """
         st.markdown(hud_html, unsafe_allow_html=True)
 
+def render_ask_trace_ai_view(is_admin: bool, curr_id: str, curr_email: str, current_user: dict):
+    """
+    Renders the Conversational Natural Language Search View ('Ask TRACE AI').
+    Empowered by Google Gemini live reasoning.
+    """
+    st.subheader("🤖 Ask TRACE AI — Conversational Campus Search")
+    st.caption("Ask natural questions about any lost or found possession on campus. Powered by Google Gemini reasoning & semantic campus matching.")
+
+    # Quick Suggestion Chips
+    st.markdown("<small style='color:#94a3b8; font-weight:600;'>💡 Instant Search Queries (Click to try):</small>", unsafe_allow_html=True)
+    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    selected_prompt = None
+    with col_s1:
+        if st.button("🎧 Boat earbuds in library", use_container_width=True):
+            selected_prompt = "Did anyone find white Boat earbuds with silicone cover near Central Library?"
+    with col_s2:
+        if st.button("👛 Wildhorn leather wallet", use_container_width=True):
+            selected_prompt = "Any black Wildhorn leather wallet with student ID found on campus?"
+    with col_s3:
+        if st.button("🔢 Casio ClassWiz calculator", use_container_width=True):
+            selected_prompt = "Looking for a Casio FX-991EX scientific calculator in Audi seminar hall"
+    with col_s4:
+        if st.button("🔑 Bike keys with leather tag", use_container_width=True):
+            selected_prompt = "Any motorcycle keys with Royal Enfield keychain found at canteen?"
+
+    # Search Bar
+    default_q = selected_prompt or st.session_state.get("last_nl_query", "")
+    with st.form("nl_search_form"):
+        user_query = st.text_input(
+            "💬 Ask anything about campus lost items:",
+            value=default_q,
+            placeholder="e.g. Lost my white boAt earbuds with black protective silicone case on reading table in Block A library"
+        )
+        col_btn1, col_btn2 = st.columns([1.2, 4])
+        with col_btn1:
+            run_query = st.form_submit_button("🚀 Ask TRACE AI", type="primary", use_container_width=True)
+
+    if run_query and user_query.strip():
+        st.session_state["last_nl_query"] = user_query.strip()
+        with st.spinner("🤖 Gemini AI reading campus registry & matching forensic specs..."):
+            found_items = db.get_found_items()
+            lost_items = db.get_lost_items()
+            nl_res = gemini_intel.natural_language_search(user_query.strip(), found_items, lost_items)
+            st.session_state["nl_search_result"] = nl_res
+
+    if "nl_search_result" in st.session_state:
+        res = st.session_state["nl_search_result"]
+        st.markdown(f"""
+        <div class="chat-bubble-ai">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <b style="color:#38bdf8; font-size:1.05rem;">🤖 TRACE AI Assistant</b>
+                <span class="dossier-pill">{res.get('model_used', 'Gemini Flash')}</span>
+            </div>
+            <div style="font-size:0.98rem; line-height:1.6;">{res.get('ai_response')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        matched_ids = res.get("matched_ids", [])
+        if matched_ids:
+            st.markdown(f"#### 📦 Matching Campus Items in Custody ({len(matched_ids)} Candidate(s)):")
+            for mid in matched_ids:
+                item = db.get_found_item(mid)
+                if item:
+                    with st.container(border=True):
+                        c_img, c_body, c_act = st.columns([1.2, 2.5, 1.3])
+                        with c_img:
+                            if item.get("image_base64"):
+                                try:
+                                    img_d = base64.b64decode(item["image_base64"])
+                                    st.image(img_d, use_container_width=True)
+                                except Exception:
+                                    st.write("📸 Photo available")
+                            elif item.get("image_url"):
+                                st.image(item["image_url"], use_container_width=True)
+                            else:
+                                st.markdown("📦 **Item in Custody**")
+                        with c_body:
+                            st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`)")
+                            st.caption(f"🆔 **{item.get('item_id')}** • 📍 {item.get('location')} • Status: **{item.get('status')}**")
+                            st.write(f"*{item.get('description')}*")
+                            if item.get("detailed_specs"):
+                                with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
+                                    render_forensic_specs_hud(item["detailed_specs"])
+                        with c_act:
+                            if not is_admin:
+                                with st.popover("🙋 File Claim"):
+                                    st.markdown(f"**Claim {item.get('item_name')}**")
+                                    claim_proof = st.text_area("Your Secret Proof of Ownership:", placeholder="Mention private stickers, serials, inner contents...", key=f"clm_nl_{mid}")
+                                    if st.button("Submit Claim", key=f"btn_nl_clm_{mid}", type="primary"):
+                                        if claim_proof.strip():
+                                            cid = f"CLM-{uuid.uuid4().hex[:5].upper()}"
+                                            c_obj = Claim(
+                                                claim_id=cid,
+                                                user_id=curr_id or "USR-STUDENT-01",
+                                                student_name=current_user.get("name", "Student"),
+                                                student_email=curr_email,
+                                                student_id=str(current_user.get("student_id", "")),
+                                                lost_item_id="DIRECT_SEARCH",
+                                                found_item_id=mid,
+                                                item_name=item.get("item_name"),
+                                                answers=claim_proof.strip(),
+                                                status="PENDING"
+                                            )
+                                            db.add_claim(c_obj.model_dump())
+                                            st.success("Claim submitted to Proctorial Board!")
+                                            st.rerun()
+                                        else:
+                                            st.error("Please provide proof details.")
+                            else:
+                                st.caption(f"👤 Source: {item.get('source')}")
+                                st.caption(f"Reported by: **{item.get('reported_by_name')}**")
+
+def render_ai_match_dossier(dossier: dict):
+    """Renders the AI Forensic Match Dossier with verification challenges and reasoning."""
+    verdict = dossier.get("verdict", "PROBABLE MATCH")
+    score = dossier.get("confidence_score", 85)
+    model = dossier.get("model_used", "Gemini AI")
+    summary = dossier.get("summary", "")
+    factors = dossier.get("matching_factors", [])
+    discrepancies = dossier.get("discrepancies", [])
+    questions = dossier.get("proctor_questions", [])
+
+    badge_color = "#10b981" if "HIGH" in verdict else ("#38bdf8" if "PROBABLE" in verdict else "#f59e0b")
+    badge_bg = "rgba(16, 185, 129, 0.15)" if "HIGH" in verdict else ("rgba(56, 189, 248, 0.15)" if "PROBABLE" in verdict else "rgba(245, 158, 11, 0.15)")
+
+    factors_html = "".join([f"<li style='margin-bottom:4px;'><span style='color:#10b981;'>✔</span> {f}</li>" for f in factors]) if factors else "<li>Standard multi-attribute correlation</li>"
+    discrepancies_html = "".join([f"<li style='margin-bottom:4px;'><span style='color:#f59e0b;'>⚠</span> {d}</li>" for d in discrepancies]) if discrepancies else "<li>No critical discrepancies noted.</li>"
+    questions_html = "".join([f"<li style='margin-bottom:6px;'><b>Q:</b> <i>\"{q}\"</i></li>" for q in questions]) if questions else "<li>Ask for student roll number and secret markings.</li>"
+
+    html = f"""
+    <div class="ai-dossier">
+        <div class="dossier-header">
+            <div class="dossier-title">
+                <span>🔬 GL Bajaj Proctorial AI Forensic Match Dossier</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; padding:3px 12px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
+                    {verdict} • {score}%
+                </span>
+                <span class="dossier-pill">{model}</span>
+            </div>
+        </div>
+        <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:14px;">
+            <b>Forensic Correlation Analysis:</b> {summary}
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
+            <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #10b981;">
+                <b style="color:#10b981; font-size:0.88rem;">Key Corroborating Attributes:</b>
+                <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
+                    {factors_html}
+                </ul>
+            </div>
+            <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #f59e0b;">
+                <b style="color:#f59e0b; font-size:0.88rem;">Forensic Discrepancies / Checks:</b>
+                <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
+                    {discrepancies_html}
+                </ul>
+            </div>
+        </div>
+        <div style="background:rgba(30, 27, 75, 0.6); border:1px solid rgba(129, 140, 248, 0.3); border-radius:8px; padding:12px 14px;">
+            <b style="color:#a5b4fc; font-size:0.88rem;">💡 Proctor Verification Interview Challenge Questions:</b>
+            <ol style="margin:8px 0 0 18px; padding:0; color:#e0e7ff; font-size:0.85rem;">
+                {questions_html}
+            </ol>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+def render_ai_claim_audit(audit: dict):
+    """Renders the Proctorial AI Claim Authenticity Audit."""
+    score = audit.get("authenticity_score", 75)
+    conf = audit.get("confidence_level", "MODERATE")
+    rec = audit.get("recommendation", "PROCEED WITH IN-PERSON ID CHECK")
+    notes = audit.get("proctor_notes", "")
+    corrob = audit.get("corroborated_points", [])
+    discrep = audit.get("discrepancies_or_doubts", [])
+    model = audit.get("model_used", "Gemini AI")
+
+    if score >= 80:
+        rec_color = "#10b981"
+        rec_bg = "rgba(16, 185, 129, 0.15)"
+    elif score >= 60:
+        rec_color = "#38bdf8"
+        rec_bg = "rgba(56, 189, 248, 0.15)"
+    else:
+        rec_color = "#ef4444"
+        rec_bg = "rgba(239, 68, 68, 0.15)"
+
+    corrob_html = "".join([f"<li>✔ {c}</li>" for c in corrob]) if corrob else "<li>General attribute consistency</li>"
+    discrep_html = "".join([f"<li>⚠ {d}</li>" for d in discrep]) if discrep else "<li>No contradictory claims flagged.</li>"
+
+    html = f"""
+    <div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)); border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:16px 20px; margin:12px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
+            <b style="color:#38bdf8; font-size:1rem;">🛡️ Proctorial AI Claim Authenticity Audit</b>
+            <span style="background:{rec_bg}; color:{rec_color}; border:1px solid {rec_color}; padding:2px 10px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
+                Authenticity: {score}% ({conf})
+            </span>
+        </div>
+        <div style="margin-bottom:10px;">
+            <span style="color:#94a3b8; font-size:0.85rem;">Advisory Verdict:</span>
+            <span style="color:{rec_color}; font-weight:700; font-size:0.95rem; margin-left:6px;">{rec}</span>
+        </div>
+        <div style="color:#cbd5e1; font-size:0.88rem; line-height:1.5; margin-bottom:12px;">
+            <b>Proctorial Notes:</b> {notes}
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
+                <b style="color:#10b981; font-size:0.8rem;">Corroborating Evidence:</b>
+                <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{corrob_html}</ul>
+            </div>
+            <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
+                <b style="color:#f59e0b; font-size:0.8rem;">Flags / Discrepancies:</b>
+                <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{discrep_html}</ul>
+            </div>
+        </div>
+        <div style="text-align:right; margin-top:8px;">
+            <small style="color:#64748b; font-family:monospace;">Engine: {model}</small>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+def render_printable_custody_slip(item: dict):
+    """Renders the official GL Bajaj Evidence & Custody Slip with scannable QR Code."""
+    item_id = item.get("item_id", "FOUND-0000")
+    name = item.get("item_name", "Unspecified")
+    cat = item.get("category", "General")
+    color = item.get("color", "Unspecified")
+    brand = item.get("brand", "N/A")
+    loc = item.get("location", "Campus")
+    date_found = item.get("found_at", datetime.datetime.now().isoformat())[:16]
+    reported_by = item.get("reported_by_name", "Student / Security")
+    desc = item.get("description", "")
+    
+    qr_payload = json.dumps({
+        "item_id": item_id,
+        "name": name,
+        "category": cat,
+        "location": loc,
+        "campus": "GLBITM Greater Noida",
+        "proctor_custody": "OFFICIALLY REGISTERED",
+        "trace_id": hashlib.sha256(f"{item_id}-{name}-{loc}".encode()).hexdigest()[:12]
+    })
+    qr_b64 = generate_qr_code_base64(qr_payload)
+    qr_img_tag = f'<img src="data:image/png;base64,{qr_b64}" width="130" height="130" style="border:1px solid #0f172a; padding:4px; background:#fff;" />' if qr_b64 else ""
+
+    slip_html = f"""
+    <div class="custody-tag">
+        <div class="custody-header">
+            <span style="font-size:1.15rem; font-weight:900; color:#0f172a;">GL BAJAJ INSTITUTE OF TECHNOLOGY & MANAGEMENT</span><br>
+            <span style="font-size:0.85rem; font-weight:700; color:#475569;">OFFICE OF THE CHIEF PROCTOR • EVIDENCE & CUSTODY SLIP</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:16px;">
+            <div style="flex:1; font-size:0.88rem; line-height:1.7; color:#0f172a;">
+                <div><b>CUSTODY EVIDENCE ID:</b> <span style="font-size:1.05rem; font-weight:900; color:#1e3a8a;">{item_id}</span></div>
+                <div><b>ITEM DESCRIPTION:</b> {name} ({cat})</div>
+                <div><b>BRAND / COLOR:</b> {brand} • {color}</div>
+                <div><b>DISCOVERY LOCATION:</b> {loc}</div>
+                <div><b>DATE / TIME SECURED:</b> {date_found}</div>
+                <div><b>SECURED BY / DEPOSITOR:</b> {reported_by}</div>
+                <div><b>OFFICIAL NOTES:</b> <i>{desc[:110]}...</i></div>
+            </div>
+            <div style="text-align:center;">
+                {qr_img_tag}
+                <div style="font-size:0.7rem; font-weight:700; color:#475569; margin-top:4px;">SCAN FOR CUSTODY VERIFICATION</div>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:12px; border-top:1px dashed #64748b; font-size:0.8rem; color:#334155;">
+            <div><b>GLBITM PROCTORIAL SIGNATURE:</b> ___________________________</div>
+            <div><b>CLAIMANT ROLL / SIGN:</b> ___________________________</div>
+        </div>
+    </div>
+    """
+    st.markdown(slip_html, unsafe_allow_html=True)
+
+def render_campus_safety_digest(insights: dict):
+    """Renders executive strategic intelligence for the GLBITM Proctorial Board."""
+    headline = insights.get("headline", "GLBITM Campus Asset Safety & Recovery Digest")
+    health = insights.get("recovery_health", "OPTIMAL")
+    hotspot = insights.get("hotspot_insights", "")
+    recs = insights.get("recommendations", [])
+    model = insights.get("model_used", "Gemini AI")
+
+    recs_html = "".join([f"<li style='margin-bottom:6px;'>🛡️ {r}</li>" for r in recs]) if recs else "<li>Continue regular scheduled proctor sweeps.</li>"
+
+    html = f"""
+    <div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.9)); border:1px solid rgba(129, 140, 248, 0.4); border-radius:14px; padding:20px 24px; margin:16px 0; box-shadow:0 10px 25px rgba(0,0,0,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(129, 140, 248, 0.25); padding-bottom:10px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.3rem;">🧠</span>
+                <b style="color:#c7d2fe; font-size:1.1rem;">{headline}</b>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span style="background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid #10b981; padding:3px 12px; border-radius:9999px; font-weight:800; font-size:0.8rem;">
+                    SYSTEM RECOVERY HEALTH: {health}
+                </span>
+                <span class="dossier-pill">{model}</span>
+            </div>
+        </div>
+        <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:16px; background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:8px; border-left:4px solid #818cf8;">
+            <b>📍 Spatial & Categorical Loss Intelligence:</b><br>
+            {hotspot}
+        </div>
+        <div style="background:rgba(15, 23, 42, 0.7); border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:14px 18px;">
+            <b style="color:#38bdf8; font-size:0.95rem;">🎯 Proactive Proctorial Board Directives:</b>
+            <ul style="margin:8px 0 0 18px; padding:0; color:#cbd5e1; font-size:0.9rem; line-height:1.6;">
+                {recs_html}
+            </ul>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
 # App Header
 st.markdown('<div class="main-header">📡 TRACE AI — GL Bajaj Smart Lost & Found</div>', unsafe_allow_html=True)
 st.markdown('<div class="tagline">“Find what you lost. Return what you found.” | <b>GL Bajaj Institute of Technology & Management</b></div>', unsafe_allow_html=True)
@@ -571,10 +974,11 @@ with st.sidebar:
             "Admin Operations:",
             [
                 "📊 Master Dashboard & Analytics",
+                "🤖 Ask TRACE AI (Smart Search)",
                 "📸 AI Vision Item Intake & Analyzer",
                 "🛡️ Claims Verification Desk",
                 "🧠 Global AI Match Matrix",
-                "📋 Master Inventory & Logs"
+                "📋 Master Inventory & Custody QR Tags"
             ]
         )
     else:
@@ -582,6 +986,7 @@ with st.sidebar:
             "Student Portal:",
             [
                 "🏠 Student Dashboard",
+                "🤖 Ask TRACE AI (Smart Search)",
                 "❓ Report Lost Item",
                 "🎁 Report Found Item",
                 "🎯 My Matches & Claim Desk",
@@ -707,6 +1112,9 @@ if not is_admin:
                         st.write(f"*{item.get('description')}*")
                     with c2:
                         st.markdown(f":green[**{item.get('status')}**]")
+
+    elif menu == "🤖 Ask TRACE AI (Smart Search)":
+        render_ask_trace_ai_view(is_admin, curr_id, curr_email, current_user)
 
     elif menu == "❓ Report Lost Item":
         st.subheader("📝 Report a Lost Item on Campus")
@@ -953,6 +1361,13 @@ if not is_admin:
                             with st.expander("🔬 View Found Item Hardware Specifications", expanded=False):
                                 render_forensic_specs_hud(m.found_item.detailed_specs)
                     with c3:
+                        if st.button("🤖 AI Match Dossier", key=f"btn_stu_dos_{m.match_id}", use_container_width=True):
+                            with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
+                                st.session_state[f"dos_stu_{m.match_id}"] = gemini_intel.explain_match(
+                                    m.lost_item.model_dump(),
+                                    m.found_item.model_dump(),
+                                    score_breakdown=m.model_dump()
+                                )
                         with st.popover("🙋 File Claim"):
                             st.markdown(f"**Claim Item:** {m.lost_item.item_name}")
                             secret = st.text_area("Proof of Ownership:", placeholder="What was inside? Any scratches, serials or stickers?", key=f"sec_{m.match_id}")
@@ -976,6 +1391,9 @@ if not is_admin:
                                     st.rerun()
                                 else:
                                     st.error("Please enter proof details.")
+
+                    if f"dos_stu_{m.match_id}" in st.session_state:
+                        render_ai_match_dossier(st.session_state[f"dos_stu_{m.match_id}"])
 
 
 
@@ -1022,6 +1440,21 @@ else:
         col4.metric("🏆 Recovery Rate", f"{recovery_rate}%")
 
         st.markdown("---")
+        with st.expander("🧠 Proctorial AI Campus Recovery & Hotspot Safety Digest", expanded=False):
+            st.caption("Strategic proctorial intelligence synthesized from live lost/found patterns by Google Gemini.")
+            col_act1, col_act2 = st.columns([2, 1])
+            with col_act1:
+                if st.button("✨ Generate AI Campus Safety & Recovery Intelligence", key="btn_run_safety_intel", type="primary", use_container_width=True):
+                    with st.spinner("🤖 Analyzing campus spatial loss patterns & generating strategic proctor directives..."):
+                        st.session_state["campus_safety_digest"] = gemini_intel.generate_campus_safety_insights(lost_items, found_items)
+            with col_act2:
+                if st.button("🔄 Reset Digest", key="btn_reset_safety_intel", use_container_width=True):
+                    if "campus_safety_digest" in st.session_state:
+                        del st.session_state["campus_safety_digest"]
+                        st.rerun()
+
+            if "campus_safety_digest" in st.session_state:
+                render_campus_safety_digest(st.session_state["campus_safety_digest"])
 
         col_l, col_r = st.columns(2)
         with col_l:
@@ -1039,6 +1472,9 @@ else:
                     st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`) — Source: `{item.get('source')}`")
                     st.caption(f"🆔 {item.get('item_id')} • 📍 {item.get('location')} • Status: `{item.get('status')}`")
                     st.write(f"*{item.get('description')}*")
+
+    elif menu == "🤖 Ask TRACE AI (Smart Search)":
+        render_ask_trace_ai_view(is_admin, curr_id, curr_email, current_user)
 
     elif menu == "📸 AI Vision Item Intake & Analyzer":
         st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Forensic Analyzer")
@@ -1361,6 +1797,7 @@ else:
 
     elif menu == "🛡️ Claims Verification Desk":
         st.subheader("🛡️ GL Bajaj Proctorial Board Verification Desk")
+        st.caption("Review student ownership claims, run AI authenticity audits against forensic blueprints, and release items.")
         claims = db.get_claims()
         if not claims:
             st.info("No claims currently submitted.")
@@ -1368,7 +1805,7 @@ else:
             for c in claims:
                 found_item = db.get_found_item(c.get("found_item_id"))
                 with st.container(border=True):
-                    col_i, col_a = st.columns([3, 1.2])
+                    col_i, col_a = st.columns([3, 1.4])
                     with col_i:
                         st.markdown(f"**Item:** `{c.get('item_name')}` | Status: **{c.get('status')}**")
                         st.write(f"Claimant: **{c.get('student_name')}** ({c.get('student_email')} • Roll: `{c.get('student_id')}`)")
@@ -1377,36 +1814,112 @@ else:
                             with st.expander("🔬 Cross-Reference Forensic Blueprint & Proctor Challenges", expanded=False):
                                 render_forensic_specs_hud(found_item.get("detailed_specs"))
                     with col_a:
+                        if st.button("🤖 AI Claim Audit", key=f"aud_btn_{c.get('claim_id')}", use_container_width=True):
+                            with st.spinner("🤖 Multimodal AI auditing claim against forensic custody data..."):
+                                st.session_state[f"audit_{c.get('claim_id')}"] = gemini_intel.evaluate_claim(c.get("answers", ""), found_item or {})
+
                         if c.get("status") == "PENDING":
-                            if st.button("✅ Approve & Release", key=f"app_{c.get('claim_id')}", type="primary"):
+                            if st.button("✅ Approve & Release", key=f"app_{c.get('claim_id')}", type="primary", use_container_width=True):
                                 db.update_claim_status(c.get("claim_id"), "APPROVED", "Verified by Proctor")
                                 db.update_lost_item_status(c.get("lost_item_id"), "VERIFIED")
                                 db.update_found_item_status(c.get("found_item_id"), "VERIFIED")
                                 st.success("Claim approved!")
                                 st.rerun()
-                            if st.button("❌ Reject Claim", key=f"rej_{c.get('claim_id')}"):
+                            if st.button("❌ Reject Claim", key=f"rej_{c.get('claim_id')}", use_container_width=True):
                                 db.update_claim_status(c.get("claim_id"), "REJECTED", "Proof mismatch")
                                 st.error("Claim rejected.")
                                 st.rerun()
                         else:
                             st.markdown(f"Status: **{c.get('status')}**")
 
+                    if f"audit_{c.get('claim_id')}" in st.session_state:
+                        render_ai_claim_audit(st.session_state[f"audit_{c.get('claim_id')}"])
+
 
     elif menu == "🧠 Global AI Match Matrix":
         st.subheader("🧠 Global Multi-Attribute AI Match Matrix")
+        st.caption("Campus-wide multi-factor matching (40% Text • 20% Category • 15% Location • 10% Color • 10% Time • 5% Brand)")
         matches = ai_matcher.get_all_matches(min_score=50.0)
-        for m in matches:
-            with st.container(border=True):
-                st.markdown(f"**{m.final_match_score}% ({m.match_level})**: Lost `{m.lost_item.item_name}` ↔ Found `{m.found_item.item_name}`")
-                st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
-                if m.found_item.detailed_specs:
-                    with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
-                        render_forensic_specs_hud(m.found_item.detailed_specs)
+        if not matches:
+            st.info("No matching pairs found in database.")
+        else:
+            for m in matches:
+                with st.container(border=True):
+                    col_m1, col_m2 = st.columns([3.5, 1.3])
+                    with col_m1:
+                        score_color = "purple" if m.final_match_score >= 90 else ("blue" if m.final_match_score >= 70 else "gray")
+                        st.markdown(f"### :{score_color}[{m.final_match_score}%] — {m.match_level}")
+                        st.markdown(f"**Lost:** `{m.lost_item.item_name}` (Student: {m.lost_item.user_name}) ↔ **Found:** `{m.found_item.item_name}` ({m.found_item.source})")
+                        st.caption(f"📍 {m.lost_item.location} ↔ {m.found_item.location} • Status: {m.found_item.status}")
+                        st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
+                        if m.found_item.detailed_specs:
+                            with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
+                                render_forensic_specs_hud(m.found_item.detailed_specs)
+                    with col_m2:
+                        if st.button("🤖 AI Forensic Dossier", key=f"dos_btn_mat_{m.match_id}", use_container_width=True):
+                            with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
+                                st.session_state[f"dos_mat_res_{m.match_id}"] = gemini_intel.explain_match(
+                                    m.lost_item.model_dump(),
+                                    m.found_item.model_dump(),
+                                    score_breakdown=m.model_dump()
+                                )
 
-    elif menu == "📋 Master Inventory & Logs":
-        st.subheader("📋 Master Campus Inventory (GLBITM)")
-        tab1, tab2 = tab1, tab2 = st.tabs(["Found Inventory", "Lost Registry"])
-        with tab1:
-            st.dataframe(db.get_found_items(), use_container_width=True)
-        with tab2:
-            st.dataframe(db.get_lost_items(), use_container_width=True)
+                    if f"dos_mat_res_{m.match_id}" in st.session_state:
+                        render_ai_match_dossier(st.session_state[f"dos_mat_res_{m.match_id}"])
+
+    elif menu in ["📋 Master Inventory & Custody QR Tags", "📋 Master Inventory & Logs"]:
+        st.subheader("📋 Master Campus Inventory & Evidence Custody Slips")
+        st.caption("GL Bajaj Proctorial Board & Campus Security Management Console")
+
+        inv_tab1, inv_tab2, inv_tab3 = st.tabs([
+            "🏷️ Custody Slip & QR Tag Generator",
+            "📦 Found Inventory Database",
+            "🚨 Lost Registry Database"
+        ])
+
+        with inv_tab1:
+            st.markdown("#### 🏷️ Official GL Bajaj Physical Evidence & Custody Slip Generator")
+            st.caption("Generate scannable custody evidence slips with encoded verification hashes for items held in the Proctor Office.")
+            all_found = db.get_found_items()
+            if not all_found:
+                st.info("No items currently in custody.")
+            else:
+                item_options = {f"{it.get('item_id')} — {it.get('item_name')} ({it.get('location')})": it for it in all_found}
+                selected_label = st.selectbox("Select Item in Custody:", list(item_options.keys()))
+                selected_item = item_options[selected_label]
+                
+                render_printable_custody_slip(selected_item)
+                
+                st.write("")
+                col_p1, col_p2 = st.columns(2)
+                with col_p1:
+                    st.info("💡 **Instructions for Proctor:** Print or attach this slip to the physical asset envelope/locker in Admin Block A. The QR code verifies custody integrity and rolls.")
+                with col_p2:
+                    slip_text = f"""GL BAJAJ INSTITUTE OF TECHNOLOGY & MANAGEMENT
+OFFICE OF THE CHIEF PROCTOR - EVIDENCE & CUSTODY SLIP
+-----------------------------------------------------------
+Custody ID: {selected_item.get('item_id')}
+Item Name:  {selected_item.get('item_name')} ({selected_item.get('category')})
+Brand/Color:{selected_item.get('brand')} / {selected_item.get('color')}
+Location:   {selected_item.get('location')}
+Date:       {selected_item.get('found_at')}
+Secured By: {selected_item.get('reported_by_name')}
+Proctor Verification Signature: ______________________
+-----------------------------------------------------------"""
+                    st.download_button(
+                        "📥 Download Custody Tag Slip (Text)",
+                        data=slip_text,
+                        file_name=f"GLBITM_Custody_Slip_{selected_item.get('item_id')}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+
+        with inv_tab2:
+            st.markdown("#### 📦 Master Found Inventory")
+            found_data = db.get_found_items()
+            st.dataframe(found_data, use_container_width=True)
+
+        with inv_tab3:
+            st.markdown("#### 🚨 Master Lost Registry")
+            lost_data = db.get_lost_items()
+            st.dataframe(lost_data, use_container_width=True)
