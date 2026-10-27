@@ -65,7 +65,7 @@ class AIVisionExtractor:
         try:
             from google import genai
             client = genai.Client(api_key=self.api_key)
-            models_to_test = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]
+            models_to_test = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-pro"]
             last_err = ""
             for model_name in models_to_test:
                 try:
@@ -241,7 +241,7 @@ class AIVisionExtractor:
             )
             contents_list.append(image_part)
 
-        models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]
+        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-pro"]
         last_exception = None
 
         for model_name in models_to_try:
