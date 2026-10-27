@@ -8,7 +8,7 @@ from .scoring import compute_composite_match
 
 class AIMatcherService:
     """
-    TRACE AI Cross-Matching Service.
+    FINDBACK AI Cross-Matching Service.
     Automatically executes when new items are reported or IoT events arrive.
     """
     def evaluate_pair(self, lost_item: dict, found_item: dict) -> MatchRecord:

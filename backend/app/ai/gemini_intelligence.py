@@ -6,7 +6,7 @@ from .vision_extractor import vision_extractor
 
 class GeminiIntelligenceService:
     """
-    TRACE AI Advanced Cognitive Intelligence Service.
+    FINDBACK AI Advanced Cognitive Intelligence Service.
     Powers live multimodal AI reasoning, natural language search,
     claim authenticity audits, and forensic match explainers.
     """
@@ -117,7 +117,7 @@ class GeminiIntelligenceService:
             "matching_factors": match_factors,
             "discrepancies": ["Subject to physical verification of serial numbers or protective wear."],
             "proctor_questions": questions,
-            "model_used": "TRACE Local Heuristic Reasoning Engine"
+            "model_used": "FINDBACK Local Heuristic Reasoning Engine"
         }
 
     def evaluate_claim(self, claim_statement: str, found_item: Dict[str, Any]) -> Dict[str, Any]:
@@ -200,7 +200,7 @@ class GeminiIntelligenceService:
             "discrepancies_or_doubts": ["Claimant should confirm physical ID and unlock/present matching credentials."],
             "recommendation": "PROCEED WITH IN-PERSON ID CHECK" if score >= 65 else "REQUEST ADDITIONAL SPECIFIC PROOF",
             "proctor_notes": "Claimant provided descriptive ownership proof matching core attributes.",
-            "model_used": "TRACE Local Heuristic Evaluator"
+            "model_used": "FINDBACK Local Heuristic Evaluator"
         }
 
     def natural_language_search(self, query: str, found_items: List[Dict[str, Any]], lost_items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -224,7 +224,7 @@ class GeminiIntelligenceService:
 
         if client:
             prompt = f"""
-            You are TRACE AI, the intelligent Lost & Found Assistant for GL Bajaj Institute of Technology & Management (GLBITM).
+            You are FINDBACK AI, the intelligent Lost & Found Assistant for GL Bajaj Institute of Technology & Management (GLBITM).
             A student is asking for help finding or inquiring about an item on campus:
             User Query: "{query}"
 
@@ -288,13 +288,13 @@ class GeminiIntelligenceService:
         if top_ids:
             resp = f"I scanned the GL Bajaj campus custody database and discovered {len(top_ids)} candidate found item(s) matching your description. Check the item cards below and file a claim to retrieve yours."
         else:
-            resp = "I searched our campus inventory but couldn't find an exact deposit matching your description yet. Please file an official Lost Item Report so TRACE AI can notify you immediately when someone turns it in."
+            resp = "I searched our campus inventory but couldn't find an exact deposit matching your description yet. Please file an official Lost Item Report so FINDBACK AI can notify you immediately when someone turns it in."
 
         return {
             "matched_ids": top_ids,
             "ai_response": resp,
             "detected_filters": {"query": query},
-            "model_used": "TRACE Local Semantic Matcher"
+            "model_used": "FINDBACK Local Semantic Matcher"
         }
 
     def generate_campus_safety_insights(self, lost_items: List[Dict[str, Any]], found_items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -369,7 +369,7 @@ class GeminiIntelligenceService:
                 "Encourage students to affix visible name/contact tags to TWS earbud cases and calculators.",
                 "Conduct end-of-shift security sweeps across Block A seminar halls and canteen benches."
             ],
-            "model_used": "TRACE Local Security Analyst"
+            "model_used": "FINDBACK Local Security Analyst"
         }
 
 gemini_intel = GeminiIntelligenceService()

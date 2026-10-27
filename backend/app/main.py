@@ -45,7 +45,7 @@ if os.path.exists(static_dir):
 @app.get("/")
 def root():
     return {
-        "system": "TRACE AI - Smart AI + IoT Lost & Found System",
+        "system": "FINDBACK AI - Smart AI + Multimodal Lost & Found System",
         "status": "ONLINE",
         "docs": "/docs",
         "api_version": "v1"
@@ -53,4 +53,4 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "TRACE AI Backend API"}
+    return {"status": "healthy", "service": "FINDBACK AI Backend API"}

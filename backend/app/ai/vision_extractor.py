@@ -8,7 +8,7 @@ from PIL import Image
 
 class AIVisionExtractor:
     """
-    TRACE AI Multimodal Vision & Forensic Hardware Feature Extractor for Admin / Proctorial Board.
+    FINDBACK AI Multimodal Vision & Forensic Hardware Feature Extractor for Admin / Proctorial Board.
     Deeply analyzes item photos, finder notes, and visual cues to extract:
     - Item Name & Subtype
     - Category, Brand & Model

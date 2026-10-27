@@ -10,7 +10,7 @@ DB_JSON_PATH = os.path.join(settings.DATA_DIR, "mongodb_store.json")
 
 class Database:
     """
-    TRACE AI MongoDB Engine
+    FINDBACK AI MongoDB Engine
     Provides high-performance collection abstractions with automatic
     JSON persistence fallback ensuring zero setup dependencies.
     """

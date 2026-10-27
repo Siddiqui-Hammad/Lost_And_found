@@ -1,4 +1,4 @@
-# TRACE AI — Multimodal AI Campus Lost & Found System
+# FINDBACK AI — Multimodal AI Campus Lost & Found System
 ### GL Bajaj Institute of Technology & Management (GLBITM) Edition
 
 > **Tagline:** *“Find what you lost. Return what you found.”*  
@@ -8,7 +8,7 @@
 
 ## 🌟 1. System Overview & Architecture
 
-**TRACE AI** solves the chaotic campus lost-and-found problem by marrying a centralized web management platform with:
+**FINDBACK AI** solves the chaotic campus lost-and-found problem by marrying a centralized web management platform with:
 1. **Admin AI Vision Item Intake & Forensic Analyzer**: When lost or dropped items are turned into the **Proctorial Board or Campus Security**, administrators upload item photos. The Multimodal AI automatically extracts item specifications, category, brand, dominant colors, condition, and generates an official campus description.
 2. **Simplified Student Portal**: Students can report lost or found items, view personalized AI matches, and file verified ownership claims with proof.
 3. **AI-Powered Multi-Attribute Semantic Cross-Matching**: 6-factor composite algorithm computing semantic similarity, category match, location proximity, color harmony, time interval, and brand confidence.
@@ -50,7 +50,7 @@
 ## 📁 3. Project Structure
 
 ```
-trace-ai/
+findback-ai/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # FastAPI entrypoint

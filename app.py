@@ -35,7 +35,7 @@ def generate_qr_code_base64(data: str) -> str:
 
 # Page Configuration
 st.set_page_config(
-    page_title="TRACE AI — GL Bajaj Smart Lost & Found",
+    page_title="FINDBACK AI — GL Bajaj Smart Lost & Found",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -472,12 +472,12 @@ def render_forensic_specs_hud(specs: dict):
         """
         st.markdown(hud_html, unsafe_allow_html=True)
 
-def render_ask_trace_ai_view(is_admin: bool, curr_id: str, curr_email: str, current_user: dict):
+def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, current_user: dict):
     """
-    Renders the Conversational Natural Language Search View ('Ask TRACE AI').
+    Renders the Conversational Natural Language Search View ('Ask FINDBACK AI').
     Empowered by Google Gemini live reasoning.
     """
-    st.subheader("🤖 Ask TRACE AI — Conversational Campus Search")
+    st.subheader("🤖 Ask FINDBACK AI — Conversational Campus Search")
     st.caption("Ask natural questions about any lost or found possession on campus. Powered by Google Gemini reasoning & semantic campus matching.")
 
     # Quick Suggestion Chips
@@ -507,7 +507,7 @@ def render_ask_trace_ai_view(is_admin: bool, curr_id: str, curr_email: str, curr
         )
         col_btn1, col_btn2 = st.columns([1.2, 4])
         with col_btn1:
-            run_query = st.form_submit_button("🚀 Ask TRACE AI", type="primary", use_container_width=True)
+            run_query = st.form_submit_button("🚀 Ask FINDBACK AI", type="primary", use_container_width=True)
 
     if run_query and user_query.strip():
         st.session_state["last_nl_query"] = user_query.strip()
@@ -522,7 +522,7 @@ def render_ask_trace_ai_view(is_admin: bool, curr_id: str, curr_email: str, curr
         st.markdown(f"""
         <div class="chat-bubble-ai">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <b style="color:#38bdf8; font-size:1.05rem;">🤖 TRACE AI Assistant</b>
+                <b style="color:#38bdf8; font-size:1.05rem;">🤖 FINDBACK AI Assistant</b>
                 <span class="dossier-pill">{res.get('model_used', 'Gemini Flash')}</span>
             </div>
             <div style="font-size:0.98rem; line-height:1.6;">{res.get('ai_response')}</div>
@@ -715,7 +715,7 @@ def render_printable_custody_slip(item: dict):
         "location": loc,
         "campus": "GLBITM Greater Noida",
         "proctor_custody": "OFFICIALLY REGISTERED",
-        "trace_id": hashlib.sha256(f"{item_id}-{name}-{loc}".encode()).hexdigest()[:12]
+        "findback_id": hashlib.sha256(f"{item_id}-{name}-{loc}".encode()).hexdigest()[:12]
     })
     qr_b64 = generate_qr_code_base64(qr_payload)
     qr_img_tag = f'<img src="data:image/png;base64,{qr_b64}" width="130" height="130" style="border:1px solid #0f172a; padding:4px; background:#fff;" />' if qr_b64 else ""
@@ -788,7 +788,7 @@ def render_campus_safety_digest(insights: dict):
     st.markdown(html, unsafe_allow_html=True)
 
 # App Header
-st.markdown('<div class="main-header">📡 TRACE AI — GL Bajaj Smart Lost & Found</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">📡 FINDBACK AI — GL Bajaj Smart Lost & Found</div>', unsafe_allow_html=True)
 st.markdown('<div class="tagline">“Find what you lost. Return what you found.” | <b>GL Bajaj Institute of Technology & Management</b></div>', unsafe_allow_html=True)
 
 # -------------------------------------------------------------
@@ -974,7 +974,7 @@ with st.sidebar:
             "Admin Operations:",
             [
                 "📊 Master Dashboard & Analytics",
-                "🤖 Ask TRACE AI (Smart Search)",
+                "🤖 Ask FINDBACK AI (Smart Search)",
                 "📸 AI Vision Item Intake & Analyzer",
                 "🛡️ Claims Verification Desk",
                 "🧠 Global AI Match Matrix",
@@ -986,7 +986,7 @@ with st.sidebar:
             "Student Portal:",
             [
                 "🏠 Student Dashboard",
-                "🤖 Ask TRACE AI (Smart Search)",
+                "🤖 Ask FINDBACK AI (Smart Search)",
                 "❓ Report Lost Item",
                 "🎁 Report Found Item",
                 "🎯 My Matches & Claim Desk",
@@ -1042,7 +1042,7 @@ with st.sidebar:
                 else:
                     st.error(f"❌ {status.get('error', 'Test failed.')}")
 
-    st.caption("TRACE AI • GLBITM Greater Noida • v2.0")
+    st.caption("FINDBACK AI • GLBITM Greater Noida • v2.0")
 
 # =============================================================
 # STUDENT PORTAL VIEWS
@@ -1113,8 +1113,8 @@ if not is_admin:
                     with c2:
                         st.markdown(f":green[**{item.get('status')}**]")
 
-    elif menu == "🤖 Ask TRACE AI (Smart Search)":
-        render_ask_trace_ai_view(is_admin, curr_id, curr_email, current_user)
+    elif menu == "🤖 Ask FINDBACK AI (Smart Search)":
+        render_ask_findback_ai_view(is_admin, curr_id, curr_email, current_user)
 
     elif menu == "❓ Report Lost Item":
         st.subheader("📝 Report a Lost Item on Campus")
@@ -1473,8 +1473,8 @@ else:
                     st.caption(f"🆔 {item.get('item_id')} • 📍 {item.get('location')} • Status: `{item.get('status')}`")
                     st.write(f"*{item.get('description')}*")
 
-    elif menu == "🤖 Ask TRACE AI (Smart Search)":
-        render_ask_trace_ai_view(is_admin, curr_id, curr_email, current_user)
+    elif menu == "🤖 Ask FINDBACK AI (Smart Search)":
+        render_ask_findback_ai_view(is_admin, curr_id, curr_email, current_user)
 
     elif menu == "📸 AI Vision Item Intake & Analyzer":
         st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Forensic Analyzer")

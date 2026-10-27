@@ -9,9 +9,9 @@ load_dotenv(os.path.join(_ROOT_DIR, ".env"))
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "TRACE AI - Smart AI + IoT Lost & Found System"
+    PROJECT_NAME: str = "FINDBACK AI - Smart AI + Multimodal Lost & Found System"
     API_V1_STR: str = "/api"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "trace-ai-super-secret-jwt-key-2026-campus")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "findback-ai-super-secret-jwt-key-2026-campus")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     
     # MongoDB Config
     MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "trace_ai_db")
+    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "findback_ai_db")
     
     # Storage Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
