@@ -1167,7 +1167,9 @@ if not is_admin:
 
     if menu == "🏠 Student Dashboard":
         lost_items = db.get_lost_items()
+        lost_items.sort(key=lambda x: str(x.get("lost_at", "")), reverse=True)
         found_items = db.get_found_items()
+        found_items.sort(key=lambda x: str(x.get("found_at", "")), reverse=True)
         
         my_lost = [
             l for l in lost_items 
@@ -1175,6 +1177,7 @@ if not is_admin:
                (curr_id and l.get("user_id", "").strip() == curr_id) or
                (curr_sid and str(l.get("student_id", "")).strip().lower() == curr_sid)
         ]
+        my_lost.sort(key=lambda x: str(x.get("lost_at", "")), reverse=True)
         my_claims = [
             c for c in db.get_claims() 
             if (c.get("student_email", "").strip().lower() == curr_email) or
@@ -1391,6 +1394,11 @@ if not is_admin:
                     placeholder="e.g. Found black wireless earbuds in a silicone case on row 4 desk in Central Library / Found keys on canteen bench.",
                     height=120
                 )
+                auto_ai = st.checkbox(
+                    "⚡ Instant AI Vision Intake (Auto-extract Name, Category, Color & Specs)",
+                    value=True,
+                    help="Automatically runs multimodal AI vision to categorize the item and extract hardware specifications for instant matching."
+                )
 
                 submit_found_btn = st.form_submit_button("🚀 Submit Found Item", use_container_width=True, type="primary")
 
@@ -1401,6 +1409,7 @@ if not is_admin:
                         item_id = f"FOUND-{len(db.get_found_items())+1:04d}"
                         
                         img_b64 = None
+                        img_bytes = b""
                         if captured_image_file:
                             try:
                                 img_bytes = captured_image_file.getvalue()
@@ -1411,21 +1420,48 @@ if not is_admin:
                         # Derive a friendly initial item title from the first sentence or default
                         first_words = description_input.strip().split("\n")[0][:45]
                         item_title = first_words if first_words else "Found Item (Photo Attached)"
+                        item_category = "Other"
+                        item_brand = ""
+                        item_color = "Unspecified"
+                        item_desc = description_input.strip() if description_input.strip() else "Photo submitted by student."
+                        item_specs = None
+                        is_analyzed = False
+
+                        if auto_ai and img_bytes:
+                            try:
+                                ai_res = vision_extractor.analyze_image(
+                                    image_bytes=img_bytes,
+                                    user_note=description_input.strip(),
+                                    location_hint=found_location
+                                )
+                                if ai_res and ai_res.get("item_name"):
+                                    item_title = ai_res.get("item_name")
+                                    item_category = ai_res.get("category", "Other")
+                                    item_brand = ai_res.get("brand", "")
+                                    item_color = ai_res.get("color", "Unspecified")
+                                    ai_note = ai_res.get("ai_description", "")
+                                    ai_cond = ai_res.get("condition", "Good condition")
+                                    item_desc = f"{description_input.strip()}\n\n[AI Vision: {ai_note} | Condition: {ai_cond}]".strip()
+                                    item_specs = ai_res.get("detailed_specs")
+                                    is_analyzed = True
+                            except Exception as e:
+                                print(f"[Student Auto AI Vision Error]: {e}")
 
                         new_fnd = FoundItem(
                             item_id=item_id,
                             item_name=item_title,
-                            category="Other",
-                            brand="",
-                            color="Unspecified",
-                            description=description_input.strip() if description_input.strip() else "Photo submitted by student. Awaiting Proctorial AI analysis.",
+                            category=item_category,
+                            brand=item_brand,
+                            color=item_color,
+                            description=item_desc,
                             location=found_location,
                             found_at=datetime.datetime.now().isoformat(),
                             source="STUDENT",
                             reported_by_id=curr_id,
                             reported_by_name=current_user.get("name"),
                             image_base64=img_b64,
-                            ai_analyzed=False,
+                            ai_analyzed=is_analyzed,
+                            detailed_specs=item_specs,
                             status="FOUND"
                         )
                         saved = db.add_found_item(new_fnd.model_dump())
@@ -1433,13 +1469,14 @@ if not is_admin:
                         
                         match_alert = None
                         if matches and matches[0].final_match_score >= 65.0:
-                            match_alert = f"Matched with student lost report '{matches[0].lost_item.item_name}' ({matches[0].final_match_score}% confidence)!"
+                            match_alert = f"Instant Cross-Match: Matches student lost report '{matches[0].lost_item.item_name}' (Student: {matches[0].lost_item.user_name}) with {matches[0].final_match_score}% confidence!"
 
                         st.session_state.last_reported_found = {
                             "item_id": item_id,
                             "item_name": item_title,
                             "location": found_location,
-                            "match_alert": match_alert
+                            "match_alert": match_alert,
+                            "ai_analyzed": is_analyzed
                         }
                         st.rerun()
 
@@ -1570,7 +1607,9 @@ else:
 
     if menu == "📊 Master Dashboard & Analytics":
         lost_items = db.get_lost_items()
+        lost_items.sort(key=lambda x: str(x.get("lost_at", "")), reverse=True)
         found_items = db.get_found_items()
+        found_items.sort(key=lambda x: str(x.get("found_at", "")), reverse=True)
         claims = db.get_claims()
         matches = ai_matcher.get_all_matches(min_score=70.0)
         returned = len([l for l in lost_items if l.get("status") in ["RETURNED", "RESOLVED"]])
@@ -1670,33 +1709,85 @@ else:
                         st.error(f"❌ {res.get('error', 'Connection test failed.')}")
 
         admin_tab1, admin_tab2 = st.tabs([
-            "📥 Student Submissions Queue (Inspect & AI Analyze)",
+            "📥 Submissions Queue & AI Analyzer",
             "📷 Direct Admin Photo Intake"
         ])
 
-        # TAB 1: INSPECT STUDENT SUBMISSIONS
+        # TAB 1: INSPECT RECENT SUBMISSIONS & AI ANALYZER
         with admin_tab1:
             all_found = db.get_found_items()
-            student_items = [f for f in all_found if f.get("source") == "STUDENT"]
+            all_found.sort(key=lambda x: str(x.get("found_at", "")), reverse=True)
 
-            st.markdown(f"#### 📦 Items Reported by Students ({len(student_items)})")
-            if not student_items:
-                st.info("No items currently in the student submission queue.")
+            col_q_filter, col_q_ref = st.columns([2.5, 1])
+            with col_q_filter:
+                filter_mode = st.radio(
+                    "Intake Queue View Filter:",
+                    [
+                        "⚡ All Recent Items (Newest First)",
+                        "🟡 Pending AI Verification (Unverified)",
+                        "✅ Verified with Hardware Specs"
+                    ],
+                    horizontal=True,
+                    key="intake_queue_filter"
+                )
+            with col_q_ref:
+                st.write("")
+                if st.button("🔄 Refresh Recent Queue", use_container_width=True, key="btn_refresh_queue"):
+                    db.check_and_reload()
+                    st.rerun()
+
+            if filter_mode == "🟡 Pending AI Verification (Unverified)":
+                queue_items = [f for f in all_found if not f.get("ai_analyzed")]
+            elif filter_mode == "✅ Verified with Hardware Specs":
+                queue_items = [f for f in all_found if f.get("ai_analyzed")]
             else:
-                for item in student_items:
+                queue_items = all_found
+
+            st.markdown(f"#### 📦 Items in Intake Queue ({len(queue_items)})")
+            if not queue_items:
+                st.info("No items match the selected queue filter.")
+            else:
+                for item in queue_items:
                     with st.container(border=True):
                         c_img, c_info, c_action = st.columns([1.2, 2.5, 1.5])
                         
                         with c_img:
+                            img_displayed = False
                             if item.get("image_base64"):
                                 try:
                                     img_data = base64.b64decode(item["image_base64"])
                                     st.image(img_data, caption=f"📸 {item.get('item_name')}", use_container_width=True)
+                                    img_displayed = True
                                 except Exception:
-                                    st.caption("⚠️ Error displaying encoded photo")
-                            elif item.get("image_url"):
-                                st.image(item["image_url"], caption=f"📸 {item.get('item_name')}", use_container_width=True)
-                            else:
+                                    pass
+                            
+                            if not img_displayed and item.get("image_url"):
+                                img_url = item["image_url"]
+                                clean_url = img_url.lstrip("/")
+                                candidate_paths = [
+                                    img_url,
+                                    clean_url,
+                                    os.path.join("backend", "app", clean_url),
+                                    os.path.join(settings.BASE_DIR, clean_url),
+                                    os.path.join(settings.BASE_DIR, "backend", "app", clean_url),
+                                    os.path.join(settings.BASE_DIR, "app", clean_url)
+                                ]
+                                for p in candidate_paths:
+                                    if os.path.exists(p) and os.path.isfile(p):
+                                        try:
+                                            st.image(p, caption=f"📸 {item.get('item_name')}", use_container_width=True)
+                                            img_displayed = True
+                                            break
+                                        except Exception:
+                                            pass
+                                if not img_displayed:
+                                    try:
+                                        st.image(img_url, caption=f"📸 {item.get('item_name')}", use_container_width=True)
+                                        img_displayed = True
+                                    except Exception:
+                                        pass
+                            
+                            if not img_displayed:
                                 st.markdown("""
                                 <div style="background:#1e293b; padding:24px 10px; border-radius:8px; text-align:center; color:#94a3b8;">
                                     📝 Text-Only Report<br><small>No photo attached</small>
@@ -1704,19 +1795,40 @@ else:
                                 """, unsafe_allow_html=True)
 
                         with c_info:
-                            st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`)")
-                            st.caption(f"🆔 **{item.get('item_id')}** • 📍 {item.get('location')} • 🎨 Color: **{item.get('color')}** • Brand: **{item.get('brand') or 'Generic'}**")
-                            st.write(f"📝 **Finder's Note:** *\"{item.get('description')}\"*")
-                            st.caption(f"👤 Reported by: **{item.get('reported_by_name')}** (ID: `{item.get('reported_by_id')}`) • Status: **{item.get('status')}**")
+                            is_recent = False
+                            time_str = item.get("found_at", "")
+                            try:
+                                if time_str:
+                                    item_time = datetime.datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+                                    now_dt = datetime.datetime.now(item_time.tzinfo) if item_time.tzinfo else datetime.datetime.now()
+                                    if (now_dt - item_time).total_seconds() <= 172800:
+                                        is_recent = True
+                            except Exception:
+                                is_recent = False
+
+                            badges_html = []
+                            if is_recent:
+                                badges_html.append("<span style='background:#f59e0b; color:#1e1e2f; font-weight:700; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-right:6px;'>⚡ RECENT SUBMISSION</span>")
                             if item.get("ai_analyzed"):
-                                st.success("✅ Previously AI-Analyzed & Verified by Proctor")
+                                badges_html.append("<span style='background:#10b981; color:#ffffff; font-weight:700; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-right:6px;'>✅ AI VERIFIED</span>")
+                            else:
+                                badges_html.append("<span style='background:#ef4444; color:#ffffff; font-weight:700; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-right:6px;'>⏳ AWAITING AI ANALYSIS</span>")
+
+                            st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`)")
+                            if badges_html:
+                                st.markdown(" ".join(badges_html), unsafe_allow_html=True)
+
+                            st.caption(f"🆔 **{item.get('item_id')}** • 📍 {item.get('location')} • 🎨 Color: **{item.get('color')}** • Brand: **{item.get('brand') or 'Generic'}** • 🕒 {str(time_str)[:16]}")
+                            st.write(f"📝 **Finder's Note:** *\"{item.get('description')}\"*")
+                            st.caption(f"👤 Reported by: **{item.get('reported_by_name')}** (ID: `{item.get('reported_by_id')}`) • Source: `{item.get('source')}` • Status: **{item.get('status')}**")
                             if item.get("detailed_specs"):
                                 with st.expander("🔬 View Verified Hardware Profile & Specs", expanded=False):
                                     render_item_specs_profile(item["detailed_specs"], is_admin=True)
 
                         with c_action:
                             st.write("")
-                            if st.button("🤖 Run AI Analysis", key=f"ai_btn_{item.get('item_id')}", type="primary", use_container_width=True):
+                            btn_label = "🔄 Re-Run AI Analysis" if item.get("ai_analyzed") else "🤖 Run AI Analysis"
+                            if st.button(btn_label, key=f"ai_btn_{item.get('item_id')}", type="primary" if not item.get("ai_analyzed") else "secondary", use_container_width=True):
                                 # Extract image bytes
                                 img_bytes = b""
                                 if item.get("image_base64"):
@@ -1724,6 +1836,26 @@ else:
                                         img_bytes = base64.b64decode(item["image_base64"])
                                     except Exception:
                                         img_bytes = b""
+
+                                if not img_bytes and item.get("image_url"):
+                                    img_url = item["image_url"]
+                                    clean_url = img_url.lstrip("/")
+                                    candidate_paths = [
+                                        img_url,
+                                        clean_url,
+                                        os.path.join("backend", "app", clean_url),
+                                        os.path.join(settings.BASE_DIR, clean_url),
+                                        os.path.join(settings.BASE_DIR, "backend", "app", clean_url),
+                                        os.path.join(settings.BASE_DIR, "app", clean_url)
+                                    ]
+                                    for p in candidate_paths:
+                                        if os.path.exists(p) and os.path.isfile(p):
+                                            try:
+                                                with open(p, "rb") as f_img:
+                                                    img_bytes = f_img.read()
+                                                break
+                                            except Exception:
+                                                pass
 
                                 with st.spinner("🤖 Multimodal AI analyzing photo & description..."):
                                     analysis = vision_extractor.analyze_image(
@@ -1779,7 +1911,7 @@ else:
                                         st.balloons()
                                         st.success(f"🎉 Item verified! Instantly matched with student lost report '{top_matches[0].lost_item.item_name}' (Student: {top_matches[0].lost_item.user_name}) at {top_matches[0].final_match_score}% confidence!")
                                     else:
-                                        st.success("✅ Item verified and updated in master inventory!")
+                                        st.success("✅ Item verified, hardware profile saved, and updated in master inventory!")
                                     st.rerun()
 
         # TAB 2: DIRECT ADMIN PHOTO INTAKE

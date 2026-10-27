@@ -56,6 +56,9 @@ class Database:
             try:
                 with open(DB_JSON_PATH, "r", encoding="utf-8") as f:
                     self.collections = json.load(f)
+                for key in ["users", "lost_items", "found_items", "claims", "iot_boxes", "iot_events", "notifications", "matches"]:
+                    if key not in self.collections:
+                        self.collections[key] = {}
                 self._last_mtime = os.path.getmtime(DB_JSON_PATH)
                 print(f"[DB] Loaded existing data store from {DB_JSON_PATH}")
                 return
@@ -71,6 +74,9 @@ class Database:
                 if not hasattr(self, "_last_mtime") or mtime != self._last_mtime:
                     with open(DB_JSON_PATH, "r", encoding="utf-8") as f:
                         self.collections = json.load(f)
+                    for key in ["users", "lost_items", "found_items", "claims", "iot_boxes", "iot_events", "notifications", "matches"]:
+                        if key not in self.collections:
+                            self.collections[key] = {}
                     self._last_mtime = mtime
             except Exception:
                 pass
@@ -369,6 +375,8 @@ class Database:
         if self.is_connected:
             for m in matches_list:
                 self.mongo_db.matches.replace_one({"match_id": m["match_id"]}, m, upsert=True)
+        if "matches" not in self.collections:
+            self.collections["matches"] = {}
         for m in matches_list:
             self.collections["matches"][m["match_id"]] = m
         self.save_local_store()
@@ -376,6 +384,8 @@ class Database:
     def get_saved_matches(self) -> List[dict]:
         if self.is_connected:
             return list(self.mongo_db.matches.find({}, {"_id": 0}))
+        if "matches" not in self.collections:
+            self.collections["matches"] = {}
         return list(self.collections["matches"].values())
 
 db = Database()

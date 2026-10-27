@@ -94,3 +94,60 @@ def update_found_status(item_id: str, req: ItemStatusUpdate, current_user: dict 
     if not updated:
         raise HTTPException(status_code=404, detail="Found item not found")
     return {"success": True, "item": updated}
+
+@router.post("/{item_id}/ai-verify")
+def run_ai_analysis_on_found_item(item_id: str, current_user: Optional[dict] = Depends(get_current_user)):
+    """
+    Runs multimodal AI analysis and updates specifications profile for an existing found item.
+    Immediately recalculates cross-matching against active student lost reports.
+    """
+    item = db.get_found_item(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Found item not found")
+
+    import base64
+    import os
+    img_bytes = b""
+    if item.get("image_base64"):
+        try:
+            img_bytes = base64.b64decode(item["image_base64"])
+        except Exception:
+            img_bytes = b""
+
+    if not img_bytes and item.get("image_url"):
+        img_url = item["image_url"].lstrip("/")
+        for p in [img_url, os.path.join("backend", "app", img_url)]:
+            if os.path.exists(p) and os.path.isfile(p):
+                try:
+                    with open(p, "rb") as f_img:
+                        img_bytes = f_img.read()
+                    break
+                except Exception:
+                    pass
+
+    analysis = vision_extractor.analyze_image(
+        image_bytes=img_bytes,
+        user_note=item.get("description", ""),
+        location_hint=item.get("location", "")
+    )
+
+    update_payload = {
+        "item_name": analysis.get("item_name", item.get("item_name")),
+        "category": analysis.get("category", item.get("category")),
+        "brand": analysis.get("brand", item.get("brand")),
+        "color": analysis.get("color", item.get("color")),
+        "description": f"{analysis.get('ai_description', '')} (Verified: {analysis.get('condition', 'Good condition')})",
+        "ai_analyzed": True,
+        "detailed_specs": analysis.get("detailed_specs")
+    }
+    updated = db.update_found_item(item_id, update_payload)
+    matches = ai_matcher.run_matching_for_found_item(updated or item)
+    top_matches = [m.model_dump() for m in matches if m.final_match_score >= 65.0]
+
+    return {
+        "success": True,
+        "item": updated,
+        "analysis": analysis,
+        "matches_count": len(top_matches),
+        "matches": top_matches
+    }
