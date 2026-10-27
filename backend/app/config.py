@@ -1,6 +1,12 @@
 import os
 from pydantic_settings import BaseSettings
 from typing import Dict, Any
+from dotenv import load_dotenv
+
+# Auto-load environment variables from root and backend .env
+_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(_ROOT_DIR, ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "TRACE AI - Smart AI + IoT Lost & Found System"
@@ -8,6 +14,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "trace-ai-super-secret-jwt-key-2026-campus")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    
+    # Gemini AI API Configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
     
     # MongoDB Config
     MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")

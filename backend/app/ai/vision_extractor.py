@@ -24,10 +24,63 @@ class AIVisionExtractor:
     """
 
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY", "")
+        from ..config import settings
+        self.api_key = (
+            os.getenv("GEMINI_API_KEY") 
+            or os.getenv("GOOGLE_API_KEY") 
+            or getattr(settings, "GEMINI_API_KEY", "") 
+            or ""
+        )
 
     def set_api_key(self, key: str):
         self.api_key = key.strip()
+        os.environ["GEMINI_API_KEY"] = self.api_key
+        # Also persist to .env if writable
+        try:
+            from ..config import settings
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            for env_path in [os.path.join(root_dir, ".env"), os.path.join(root_dir, "backend", ".env")]:
+                if os.path.exists(env_path):
+                    with open(env_path, "r", encoding="utf-8") as f:
+                        lines = f.readlines()
+                    found = False
+                    new_lines = []
+                    for line in lines:
+                        if line.startswith("GEMINI_API_KEY="):
+                            new_lines.append(f"GEMINI_API_KEY={self.api_key}\n")
+                            found = True
+                        else:
+                            new_lines.append(line)
+                    if not found:
+                        new_lines.append(f"\nGEMINI_API_KEY={self.api_key}\n")
+                    with open(env_path, "w", encoding="utf-8") as f:
+                        f.writelines(new_lines)
+        except Exception as e:
+            print(f"[AIVisionExtractor] Note: could not write .env: {e}")
+
+    def test_connection(self) -> Dict[str, Any]:
+        """Validates the current Gemini API key by sending a minimal test query."""
+        if not self.api_key:
+            return {"success": False, "error": "No API key configured."}
+        try:
+            from google import genai
+            client = genai.Client(api_key=self.api_key)
+            models_to_test = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]
+            last_err = ""
+            for model_name in models_to_test:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents="Respond with 'OK'."
+                    )
+                    if response and response.text:
+                        return {"success": True, "model": model_name, "message": f"Connected to {model_name} successfully!"}
+                except Exception as me:
+                    last_err = str(me)
+                    continue
+            return {"success": False, "error": f"Failed testing models: {last_err}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     def _extract_colors_and_profile(self, image: Image.Image) -> Dict[str, Any]:
         """Extracts dominant colors, aspect ratio, and brightness metrics using PIL."""
@@ -174,33 +227,50 @@ class AIVisionExtractor:
         }}
         """
 
-        mime_type = "image/jpeg"
-        if image_bytes.startswith(b"\x89PNG"):
-            mime_type = "image/png"
-        elif image_bytes.startswith(b"RIFF") and b"WEBP" in image_bytes[:12]:
-            mime_type = "image/webp"
+        contents_list = [prompt]
+        if image_bytes and len(image_bytes) > 0:
+            mime_type = "image/jpeg"
+            if image_bytes.startswith(b"\x89PNG"):
+                mime_type = "image/png"
+            elif image_bytes.startswith(b"RIFF") and b"WEBP" in image_bytes[:12]:
+                mime_type = "image/webp"
 
-        image_part = types.Part.from_bytes(
-            data=image_bytes,
-            mime_type=mime_type
-        )
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[prompt, image_part],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.2
+            image_part = types.Part.from_bytes(
+                data=image_bytes,
+                mime_type=mime_type
             )
-        )
+            contents_list.append(image_part)
 
-        text = response.text.strip()
-        # Clean any markdown codefence wrapping if present
-        if text.startswith("```"):
-            text = re.sub(r"^```(?:json)?\n?", "", text)
-            text = re.sub(r"\n?```$", "", text)
-        data = json.loads(text.strip())
-        return data
+        models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]
+        last_exception = None
+
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents_list,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.2
+                    )
+                )
+
+                text = response.text.strip()
+                # Clean any markdown codefence wrapping if present
+                if text.startswith("```"):
+                    text = re.sub(r"^```(?:json)?\n?", "", text)
+                    text = re.sub(r"\n?```$", "", text)
+                data = json.loads(text.strip())
+                if isinstance(data, dict):
+                    data["ai_model_used"] = f"{model_name} (Live Multimodal Vision)"
+                return data
+            except Exception as me:
+                last_exception = me
+                continue
+
+        if last_exception:
+            raise last_exception
+        return None
 
     def _analyze_with_local_engine(self, image_bytes: bytes, user_note: str, location_hint: str) -> Dict[str, Any]:
         """High-precision local multimodal forensic synthesis combining visual metrics and domain knowledge."""

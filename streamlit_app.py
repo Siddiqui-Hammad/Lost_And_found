@@ -212,6 +212,26 @@ if "ai_extracted_item" not in st.session_state:
 if "ai_uploaded_image_bytes" not in st.session_state:
     st.session_state.ai_uploaded_image_bytes = None
 
+# Multi-source Gemini API Key auto-discovery
+# Sources: 1. Streamlit Secrets (Cloud), 2. Environment Variables, 3. .env file
+if "gemini_api_key" not in st.session_state:
+    secret_key = None
+    try:
+        secret_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
+    except Exception:
+        pass
+    st.session_state.gemini_api_key = (
+        secret_key
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
+        or getattr(settings, "GEMINI_API_KEY", "")
+        or vision_extractor.api_key
+        or ""
+    )
+
+if st.session_state.gemini_api_key:
+    vision_extractor.set_api_key(st.session_state.gemini_api_key)
+
 # GL Bajaj Campus Locations
 CAMPUS_LOCATIONS = [
     "Central Library (Block A)",
@@ -570,6 +590,53 @@ with st.sidebar:
         )
 
     st.markdown("---")
+    
+    # Gemini AI Engine Status & Configuration in Sidebar
+    has_gemini = bool(vision_extractor.api_key)
+    with st.expander("⚡ Gemini Multimodal AI", expanded=not has_gemini):
+        if has_gemini:
+            masked = f"{vision_extractor.api_key[:6]}...{vision_extractor.api_key[-4:]}" if len(vision_extractor.api_key) > 10 else "******"
+            st.markdown(f"""
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;">
+                <span style="color:#10b981; font-weight:700; font-size:0.85rem;">🟢 Live Gemini AI: ACTIVE</span><br>
+                <small style="color:#94a3b8; font-family:monospace;">Key: {masked}</small>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;">
+                <span style="color:#fbbf24; font-weight:700; font-size:0.85rem;">🟡 Local Heuristics Active</span><br>
+                <small style="color:#94a3b8;">Enter Gemini API Key below to unlock live Google Gemini Vision.</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        input_key = st.text_input(
+            "Gemini API Key:",
+            value=st.session_state.gemini_api_key or "",
+            type="password",
+            placeholder="AIzaSy...",
+            key="sidebar_gemini_key_input"
+        )
+        col_k1, col_k2 = st.columns(2)
+        with col_k1:
+            if st.button("💾 Apply Key", use_container_width=True, key="save_sidebar_key_btn"):
+                if input_key.strip():
+                    st.session_state.gemini_api_key = input_key.strip()
+                    vision_extractor.set_api_key(input_key.strip())
+                    st.success("API Key saved!")
+                    st.rerun()
+                else:
+                    st.warning("Please enter a key.")
+        with col_k2:
+            if st.button("🧪 Test Key", use_container_width=True, key="test_sidebar_key_btn"):
+                if input_key.strip():
+                    vision_extractor.set_api_key(input_key.strip())
+                status = vision_extractor.test_connection()
+                if status.get("success"):
+                    st.success(f"✅ {status.get('message', 'Key verified!')}")
+                else:
+                    st.error(f"❌ {status.get('error', 'Test failed.')}")
+
     st.caption("TRACE AI • GLBITM Greater Noida • v2.0")
 
 # =============================================================
@@ -977,13 +1044,51 @@ else:
         st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Forensic Analyzer")
         st.caption("Administrator tool: Review student-reported found items (with camera photos/descriptions) OR intake new physical items into the Proctor Office. The Multimodal AI extracts item specifications, color palette, condition, and generates an official campus description.")
 
-        # Optional live Gemini Key override for Admin
-        with st.expander("⚙️ AI Vision Engine Configuration (Optional API Key)", expanded=False):
-            st.caption("If you provide a Google Gemini API Key, live multimodal vision will be used. Otherwise, high-precision local computer vision & heuristics are active.")
-            custom_key = st.text_input("Google Gemini API Key:", value=vision_extractor.api_key, type="password", placeholder="AIzaSy...")
-            if custom_key:
-                vision_extractor.set_api_key(custom_key)
-                st.success("Gemini API Key active!")
+        # Live Gemini AI Configuration & Status Panel
+        has_key = bool(vision_extractor.api_key)
+        with st.expander("⚡ Google Gemini Multimodal AI Engine Configuration", expanded=not has_key):
+            if has_key:
+                masked = f"{vision_extractor.api_key[:6]}...{vision_extractor.api_key[-4:]}" if len(vision_extractor.api_key) > 10 else "******"
+                st.markdown(f"""
+                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+                    <span style="color:#10b981; font-weight:700;">🟢 Live Gemini AI Vision: ACTIVE</span><br>
+                    <small style="color:#94a3b8; font-family:monospace;">Active Key: {masked} • Connected to Gemini 2.5 Flash Multimodal Vision</small>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+                    <span style="color:#fbbf24; font-weight:700;">🟡 Zero-Config Local Vision Heuristics Active</span><br>
+                    <small style="color:#94a3b8;">Provide your Google Gemini API Key below to unlock live multimodal vision inspection.</small>
+                </div>
+                """, unsafe_allow_html=True)
+
+            custom_key = st.text_input(
+                "Google Gemini API Key:",
+                value=vision_extractor.api_key or st.session_state.gemini_api_key or "",
+                type="password",
+                placeholder="AIzaSy...",
+                key="admin_gemini_key_input"
+            )
+            col_ak1, col_ak2 = st.columns(2)
+            with col_ak1:
+                if st.button("💾 Save & Activate API Key", key="btn_save_gemini_admin", type="primary", use_container_width=True):
+                    if custom_key.strip():
+                        st.session_state.gemini_api_key = custom_key.strip()
+                        vision_extractor.set_api_key(custom_key.strip())
+                        st.success("Gemini API Key activated and persisted successfully!")
+                        st.rerun()
+                    else:
+                        st.warning("Please enter a valid Gemini API key.")
+            with col_ak2:
+                if st.button("🧪 Test API Connection", key="btn_test_gemini_admin", use_container_width=True):
+                    if custom_key.strip():
+                        vision_extractor.set_api_key(custom_key.strip())
+                    res = vision_extractor.test_connection()
+                    if res.get("success"):
+                        st.success(f"✅ {res.get('message', 'Connected successfully!')}")
+                    else:
+                        st.error(f"❌ {res.get('error', 'Connection test failed.')}")
 
         admin_tab1, admin_tab2 = st.tabs([
             "📥 Student Submissions Queue (Inspect & AI Analyze)",
@@ -1054,6 +1159,8 @@ else:
                         if f"analysis_{item.get('item_id')}" in st.session_state:
                             analyzed = st.session_state[f"analysis_{item.get('item_id')}"]
                             with st.expander(f"✨ AI Forensic Analysis for {item.get('item_id')}", expanded=True):
+                                if analyzed.get("ai_model_used"):
+                                    st.info(f"⚡ Analysis Engine: **{analyzed['ai_model_used']}**")
                                 if analyzed.get("detailed_specs"):
                                     render_forensic_specs_hud(analyzed.get("detailed_specs"))
 
@@ -1180,6 +1287,8 @@ else:
                     ext = st.session_state.ai_extracted_item
                     st.markdown("---")
                     
+                    if ext.get("ai_model_used"):
+                        st.info(f"⚡ Analysis Engine: **{ext['ai_model_used']}**")
                     if ext.get("detailed_specs"):
                         render_forensic_specs_hud(ext.get("detailed_specs"))
 
