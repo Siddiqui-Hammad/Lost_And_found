@@ -16,6 +16,7 @@ from backend.app.models.user import User
 from backend.app.ai.matcher import ai_matcher
 from backend.app.ai.vision_extractor import vision_extractor
 from backend.app.ai.gemini_intelligence import gemini_intel
+from backend.app.ai.notification_dispatcher import notification_dispatcher
 from backend.app.config import settings
 
 def generate_qr_code_base64(data: str) -> str:
@@ -280,6 +281,27 @@ st.markdown("""
         color: #f1f5f9;
         line-height: 1.5;
         animation: fadeIn 0.35s ease-out;
+    }
+
+    /* Notification & Dispatch Alerts */
+    .notif-card {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85));
+        border: 1px solid rgba(52, 211, 153, 0.35);
+        border-left: 4px solid #10b981;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 10px 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    .notif-token {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-weight: 700;
+        font-size: 0.85rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -787,6 +809,94 @@ def render_campus_safety_digest(insights: dict):
     """
     st.markdown(html, unsafe_allow_html=True)
 
+def render_notification_hub_admin():
+    """Renders the Proctorial Automated Notification & Dispatch Console."""
+    st.subheader("🔔 Automated WhatsApp & Email Notification Hub")
+    st.caption("Proctorial Broadcast & Student Alert Management Console. Powered by automated match detection & direct carrier dispatch.")
+
+    matches = ai_matcher.get_all_matches(min_score=70.0)
+    notifs = notification_dispatcher.get_notification_log()
+
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("🔔 Total Dispatched Alerts", len(notifs))
+    col_m2.metric("🎯 Eligible High Matches", len(matches))
+    col_m3.metric("⚡ Carrier Engine Status", "ONLINE (WhatsApp + SMTP)")
+
+    st.markdown("---")
+
+    col_btn, col_info = st.columns([1.5, 2])
+    with col_btn:
+        if st.button("⚡ Auto-Dispatch Alerts for All High Matches", type="primary", use_container_width=True):
+            dispatched_count = 0
+            for m in matches:
+                lost_user = m.lost_item
+                res = notification_dispatcher.send_alert(
+                    channel="WHATSAPP",
+                    recipient_name=lost_user.user_name,
+                    recipient_contact="9876543210",
+                    lost_item=m.lost_item.model_dump(),
+                    found_item=m.found_item.model_dump(),
+                    match_score=m.final_match_score,
+                    dispatched_by="Proctorial Board Automated Match Scanner"
+                )
+                dispatched_count += 1
+            st.success(f"🎉 Successfully dispatched {dispatched_count} instant match alert(s) with secure claim tokens!")
+            st.rerun()
+
+    with col_info:
+        st.info("💡 **Proctor Note:** Students receive instant WhatsApp & Email alerts with an authorized **8-character Claim Token** (`CLM-XXXX`). When they visit Admin Block A, verify this token on their phone.")
+
+    st.markdown("### 📋 Dispatch & Carrier Delivery Log")
+    if not notifs:
+        st.info("No notifications dispatched yet.")
+    else:
+        for n in notifs:
+            with st.container(border=True):
+                cn1, cn2, cn3 = st.columns([1, 2.5, 1.2])
+                with cn1:
+                    ch_color = "green" if n.get("channel") == "WHATSAPP" else "blue"
+                    st.markdown(f"**:{ch_color}[{n.get('channel')}]**")
+                    st.caption(f"🆔 {n.get('notification_id')}")
+                    st.markdown(f"<span class='notif-token'>{n.get('claim_token')}</span>", unsafe_allow_html=True)
+                with cn2:
+                    st.markdown(f"Recipient: **{n.get('recipient_name')}** (`{n.get('recipient_contact')}`)")
+                    st.caption(f"Item: **{n.get('item_name')}** • Match: **{n.get('match_score')}%** • Time: {n.get('timestamp')[:16]}")
+                    st.write(f"*{n.get('message_preview')}*")
+                with cn3:
+                    st.markdown(f"Status: **{n.get('status')}**")
+                    if n.get("channel") == "WHATSAPP" and n.get("action_url"):
+                        st.link_button("📲 Open WhatsApp", n["action_url"], use_container_width=True)
+                    elif n.get("action_url"):
+                        st.link_button("✉️ Open Email", n["action_url"], use_container_width=True)
+
+def render_student_notifications_view(curr_email: str):
+    """Renders student notifications and claim token alerts."""
+    st.subheader("🔔 My Campus Alerts & Match Notifications")
+    st.caption("Real-time notifications dispatched by FINDBACK AI and the Proctorial Board.")
+
+    my_notifs = db.get_user_notifications(curr_email)
+    if not my_notifs:
+        my_notifs = notification_dispatcher.get_notification_log()
+
+    if not my_notifs:
+        st.info("No notifications received yet. You will be alerted the moment an item matching your lost report is turned in!")
+    else:
+        for n in my_notifs:
+            with st.container(border=True):
+                c1, c2 = st.columns([3, 1.2])
+                with c1:
+                    st.markdown(f"🔔 **Match Alert: {n.get('item_name')}** ({n.get('match_score')}% Confidence)")
+                    st.markdown(f"Secure Claim Token: <span class='notif-token'>{n.get('claim_token')}</span>", unsafe_allow_html=True)
+                    st.write(f"{n.get('full_message')}")
+                    st.caption(f"Dispatched via **{n.get('channel')}** on {n.get('timestamp')[:16]}")
+                with c2:
+                    st.success("✅ Delivered")
+                    if n.get("action_url"):
+                        if n.get("channel") == "WHATSAPP":
+                            st.link_button("📲 Open in WhatsApp", n["action_url"], use_container_width=True)
+                        else:
+                            st.link_button("✉️ Open in Mail", n["action_url"], use_container_width=True)
+
 # App Header
 st.markdown('<div class="main-header">📡 FINDBACK AI — GL Bajaj Smart Lost & Found</div>', unsafe_allow_html=True)
 st.markdown('<div class="tagline">“Find what you lost. Return what you found.” | <b>GL Bajaj Institute of Technology & Management</b></div>', unsafe_allow_html=True)
@@ -978,6 +1088,7 @@ with st.sidebar:
                 "📸 AI Vision Item Intake & Analyzer",
                 "🛡️ Claims Verification Desk",
                 "🧠 Global AI Match Matrix",
+                "🔔 Automated Notification Hub",
                 "📋 Master Inventory & Custody QR Tags"
             ]
         )
@@ -990,6 +1101,7 @@ with st.sidebar:
                 "❓ Report Lost Item",
                 "🎁 Report Found Item",
                 "🎯 My Matches & Claim Desk",
+                "🔔 My Alerts & Notifications",
                 "👤 My Profile & Claims"
             ]
         )
@@ -1392,10 +1504,28 @@ if not is_admin:
                                 else:
                                     st.error("Please enter proof details.")
 
+                        with st.popover("📲 Get WhatsApp Alert"):
+                            st.markdown(f"**Alert for:** `{m.lost_item.item_name}`")
+                            p_num = st.text_input("WhatsApp Number:", value="9876543210", key=f"wp_s_{m.match_id}")
+                            if st.button("📲 Send WhatsApp Summary", key=f"b_wp_s_{m.match_id}", type="primary"):
+                                res_w = notification_dispatcher.send_alert(
+                                    channel="WHATSAPP",
+                                    recipient_name=current_user.get("name", "Student"),
+                                    recipient_contact=p_num,
+                                    lost_item=m.lost_item.model_dump(),
+                                    found_item=m.found_item.model_dump(),
+                                    match_score=m.final_match_score,
+                                    dispatched_by="Student Self-Alert Dispatcher"
+                                )
+                                st.success(f"Claim Token: {res_w['claim_token']}")
+                                if res_w.get("action_url"):
+                                    st.link_button("👉 Open in WhatsApp", res_w["action_url"])
+
                     if f"dos_stu_{m.match_id}" in st.session_state:
                         render_ai_match_dossier(st.session_state[f"dos_stu_{m.match_id}"])
 
-
+    elif menu == "🔔 My Alerts & Notifications":
+        render_student_notifications_view(curr_email)
 
     elif menu == "👤 My Profile & Claims":
         st.subheader("👤 Student Profile & Claims Status")
@@ -1864,8 +1994,45 @@ else:
                                     score_breakdown=m.model_dump()
                                 )
 
+                        with st.popover("📲 Notify Student"):
+                            st.markdown(f"**Dispatch Alert to:** {m.lost_item.user_name}")
+                            st.caption(f"Email: `{m.lost_item.user_email}`")
+                            st_phone = st.text_input("Student WhatsApp Number:", value="9876543210", key=f"ad_wp_num_{m.match_id}")
+                            c_w1, c_w2 = st.columns(2)
+                            with c_w1:
+                                if st.button("📲 Send WhatsApp", key=f"ad_btn_wp_{m.match_id}", type="primary"):
+                                    res_wp = notification_dispatcher.send_alert(
+                                        channel="WHATSAPP",
+                                        recipient_name=m.lost_item.user_name,
+                                        recipient_contact=st_phone,
+                                        lost_item=m.lost_item.model_dump(),
+                                        found_item=m.found_item.model_dump(),
+                                        match_score=m.final_match_score,
+                                        dispatched_by="Proctor Direct Alert"
+                                    )
+                                    st.success(f"Dispatched! Token: {res_wp['claim_token']}")
+                                    if res_wp.get("action_url"):
+                                        st.link_button("👉 Open in WhatsApp", res_wp["action_url"])
+                            with c_w2:
+                                if st.button("✉️ Send Email", key=f"ad_btn_em_{m.match_id}"):
+                                    res_em = notification_dispatcher.send_alert(
+                                        channel="EMAIL",
+                                        recipient_name=m.lost_item.user_name,
+                                        recipient_contact=m.lost_item.user_email,
+                                        lost_item=m.lost_item.model_dump(),
+                                        found_item=m.found_item.model_dump(),
+                                        match_score=m.final_match_score,
+                                        dispatched_by="Proctor Direct Alert"
+                                    )
+                                    st.success(f"Email dispatched! Token: {res_em['claim_token']}")
+                                    if res_em.get("action_url"):
+                                        st.link_button("👉 Open Mail Client", res_em["action_url"])
+
                     if f"dos_mat_res_{m.match_id}" in st.session_state:
                         render_ai_match_dossier(st.session_state[f"dos_mat_res_{m.match_id}"])
+
+    elif menu == "🔔 Automated Notification Hub":
+        render_notification_hub_admin()
 
     elif menu in ["📋 Master Inventory & Custody QR Tags", "📋 Master Inventory & Logs"]:
         st.subheader("📋 Master Campus Inventory & Evidence Custody Slips")

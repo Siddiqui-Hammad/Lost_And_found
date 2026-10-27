@@ -299,6 +299,11 @@ class Database:
             return list(self.mongo_db.notifications.find({"user_email": user_email}, {"_id": 0}))
         return [n for n in self.collections["notifications"].values() if n.get("user_email", "").lower() == user_email.lower()]
 
+    def get_all_notifications(self) -> List[dict]:
+        if self.is_connected:
+            return list(self.mongo_db.notifications.find({}, {"_id": 0}))
+        return list(self.collections["notifications"].values())
+
     def mark_notification_read(self, notif_id: str):
         if self.is_connected:
             self.mongo_db.notifications.update_one({"notification_id": notif_id}, {"$set": {"is_read": True}})
