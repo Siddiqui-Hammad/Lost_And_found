@@ -6,6 +6,7 @@ import io
 import json
 import hashlib
 import os
+import textwrap
 import plotly.express as px
 from collections import Counter
 
@@ -359,9 +360,13 @@ ITEM_CATEGORIES = [
     "Bottle", "Watch", "Clothing", "Documents", "Accessories", "Other"
 ]
 
-def render_forensic_specs_hud(specs: dict):
+def render_clean_html(html_str: str):
+    """Safely renders raw HTML in Streamlit, stripping leading indentation to prevent CommonMark code block conversion."""
+    st.markdown(textwrap.dedent(html_str).strip(), unsafe_allow_html=True)
+
+def render_forensic_specs_hud(specs: dict, is_admin: bool = True):
     """
-    Renders high-tech Forensic Item Specification Blueprint HUD.
+    Renders high-tech Forensic Item Specification Blueprint HUD for the Proctorial Board Backend.
     Displays exhaustive hardware architecture for earbuds, cases, electronics, and secret proctor verification challenges.
     """
     if not specs or not isinstance(specs, dict):
@@ -419,33 +424,37 @@ def render_forensic_specs_hud(specs: dict):
             for i, q in enumerate(questions)
         ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant about case color, charging port, and internal earbud markings.</div>'
         
+        challenges_block = f"""
+<div class="challenge-card">
+    <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</div>
+    {questions_html}
+</div>
+""" if is_admin else ""
+
         hud_html = f"""
-        <div class="forensic-hud">
-            <div class="hud-title">🎧 TWS Earbuds & Charging Case Forensic Blueprint</div>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
-                <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                    <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📦 Charging Case Architecture</div>
-                    {case_rows_html}
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(129, 140, 248, 0.2);">
-                    <div style="color:#818cf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">🎵 Earbuds Hardware Anatomy</div>
-                    {bud_rows_html}
-                </div>
-            </div>
-            
-            <div style="margin-top: 10px;">
-                <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks & Wear:</div>
-                <div>{marks_html}</div>
-            </div>
-            
-            <div class="challenge-card">
-                <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</div>
-                {questions_html}
-            </div>
+<div class="forensic-hud">
+    <div class="hud-title">🎧 TWS Earbuds & Charging Case Forensic Blueprint</div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+        <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📦 Charging Case Architecture</div>
+            {case_rows_html}
         </div>
-        """
-        st.markdown(hud_html, unsafe_allow_html=True)
+        <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(129, 140, 248, 0.2);">
+            <div style="color:#818cf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">🎵 Earbuds Hardware Anatomy</div>
+            {bud_rows_html}
+        </div>
+    </div>
+    
+    <div style="margin-top: 10px;">
+        <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks & Wear:</div>
+        <div>{marks_html}</div>
+    </div>
+    
+    {challenges_block}
+</div>
+"""
+        render_clean_html(hud_html)
     
     else:
         raw_attrs = specs.get("item_attributes")
@@ -472,27 +481,31 @@ def render_forensic_specs_hud(specs: dict):
             for i, q in enumerate(questions)
         ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant to describe brand markings, stickers, or internal contents.</div>'
         
+        challenges_block = f"""
+<div class="challenge-card">
+    <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges:</div>
+    {questions_html}
+</div>
+""" if is_admin else ""
+
         hud_html = f"""
-        <div class="forensic-hud">
-            <div class="hud-title">🔬 {subtype}</div>
-            
-            <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 12px;">
-                <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📐 Hardware Attributes & Geometry</div>
-                {rows_html}
-            </div>
-            
-            <div style="margin-top: 10px;">
-                <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks:</div>
-                <div>{marks_html}</div>
-            </div>
-            
-            <div class="challenge-card">
-                <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges:</div>
-                {questions_html}
-            </div>
-        </div>
-        """
-        st.markdown(hud_html, unsafe_allow_html=True)
+<div class="forensic-hud">
+    <div class="hud-title">🔬 {subtype}</div>
+    
+    <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 12px;">
+        <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📐 Hardware Attributes & Geometry</div>
+        {rows_html}
+    </div>
+    
+    <div style="margin-top: 10px;">
+        <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks:</div>
+        <div>{marks_html}</div>
+    </div>
+    
+    {challenges_block}
+</div>
+"""
+        render_clean_html(hud_html)
 
 def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, current_user: dict):
     """
@@ -574,9 +587,9 @@ def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, c
                             st.markdown(f"**{item.get('item_name')}** (`{item.get('category')}`)")
                             st.caption(f"🆔 **{item.get('item_id')}** • 📍 {item.get('location')} • Status: **{item.get('status')}**")
                             st.write(f"*{item.get('description')}*")
-                            if item.get("detailed_specs"):
-                                with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
-                                    render_forensic_specs_hud(item["detailed_specs"])
+                            if is_admin and item.get("detailed_specs"):
+                                with st.expander("🔬 View Proctorial Hardware Specifications (Admin Backend Only)", expanded=False):
+                                    render_forensic_specs_hud(item["detailed_specs"], is_admin=True)
                         with c_act:
                             if not is_admin:
                                 with st.popover("🙋 File Claim"):
@@ -606,8 +619,8 @@ def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, c
                                 st.caption(f"👤 Source: {item.get('source')}")
                                 st.caption(f"Reported by: **{item.get('reported_by_name')}**")
 
-def render_ai_match_dossier(dossier: dict):
-    """Renders the AI Forensic Match Dossier with verification challenges and reasoning."""
+def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
+    """Renders the AI Forensic Match Dossier with verification challenges (Admin backend only) and reasoning."""
     verdict = dossier.get("verdict", "PROBABLE MATCH")
     score = dossier.get("confidence_score", 85)
     model = dossier.get("model_used", "Gemini AI")
@@ -623,45 +636,56 @@ def render_ai_match_dossier(dossier: dict):
     discrepancies_html = "".join([f"<li style='margin-bottom:4px;'><span style='color:#f59e0b;'>⚠</span> {d}</li>" for d in discrepancies]) if discrepancies else "<li>No critical discrepancies noted.</li>"
     questions_html = "".join([f"<li style='margin-bottom:6px;'><b>Q:</b> <i>\"{q}\"</i></li>" for q in questions]) if questions else "<li>Ask for student roll number and secret markings.</li>"
 
+    if is_admin:
+        bottom_box = f"""
+<div style="background:rgba(30, 27, 75, 0.6); border:1px solid rgba(129, 140, 248, 0.3); border-radius:8px; padding:12px 14px;">
+    <b style="color:#a5b4fc; font-size:0.88rem;">💡 Proctor Verification Interview Challenge Questions (Admin Backend):</b>
+    <ol style="margin:8px 0 0 18px; padding:0; color:#e0e7ff; font-size:0.85rem;">
+        {questions_html}
+    </ol>
+</div>
+"""
+    else:
+        bottom_box = """
+<div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(56, 189, 248, 0.25); border-radius:8px; padding:10px 14px; margin-top:8px;">
+    <small style="color:#94a3b8;">🔒 <b>Proctorial Security Protocol:</b> Full physical hardware blueprints and in-person verification challenges are held securely in the Administrator Backend.</small>
+</div>
+"""
+
     html = f"""
-    <div class="ai-dossier">
-        <div class="dossier-header">
-            <div class="dossier-title">
-                <span>🔬 GL Bajaj Proctorial AI Forensic Match Dossier</span>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; padding:3px 12px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
-                    {verdict} • {score}%
-                </span>
-                <span class="dossier-pill">{model}</span>
-            </div>
+<div class="ai-dossier">
+    <div class="dossier-header">
+        <div class="dossier-title">
+            <span>🔬 GL Bajaj AI Forensic Match Dossier</span>
         </div>
-        <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:14px;">
-            <b>Forensic Correlation Analysis:</b> {summary}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
-            <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #10b981;">
-                <b style="color:#10b981; font-size:0.88rem;">Key Corroborating Attributes:</b>
-                <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
-                    {factors_html}
-                </ul>
-            </div>
-            <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #f59e0b;">
-                <b style="color:#f59e0b; font-size:0.88rem;">Forensic Discrepancies / Checks:</b>
-                <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
-                    {discrepancies_html}
-                </ul>
-            </div>
-        </div>
-        <div style="background:rgba(30, 27, 75, 0.6); border:1px solid rgba(129, 140, 248, 0.3); border-radius:8px; padding:12px 14px;">
-            <b style="color:#a5b4fc; font-size:0.88rem;">💡 Proctor Verification Interview Challenge Questions:</b>
-            <ol style="margin:8px 0 0 18px; padding:0; color:#e0e7ff; font-size:0.85rem;">
-                {questions_html}
-            </ol>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; padding:3px 12px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
+                {verdict} • {score}%
+            </span>
+            <span class="dossier-pill">{model}</span>
         </div>
     </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+    <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:14px;">
+        <b>Forensic Correlation Analysis:</b> {summary}
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
+        <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #10b981;">
+            <b style="color:#10b981; font-size:0.88rem;">Key Corroborating Attributes:</b>
+            <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
+                {factors_html}
+            </ul>
+        </div>
+        <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #f59e0b;">
+            <b style="color:#f59e0b; font-size:0.88rem;">Forensic Discrepancies / Checks:</b>
+            <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
+                {discrepancies_html}
+            </ul>
+        </div>
+    </div>
+    {bottom_box}
+</div>
+"""
+    render_clean_html(html)
 
 def render_ai_claim_audit(audit: dict):
     """Renders the Proctorial AI Claim Authenticity Audit."""
@@ -687,36 +711,36 @@ def render_ai_claim_audit(audit: dict):
     discrep_html = "".join([f"<li>⚠ {d}</li>" for d in discrep]) if discrep else "<li>No contradictory claims flagged.</li>"
 
     html = f"""
-    <div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)); border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:16px 20px; margin:12px 0;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
-            <b style="color:#38bdf8; font-size:1rem;">🛡️ Proctorial AI Claim Authenticity Audit</b>
-            <span style="background:{rec_bg}; color:{rec_color}; border:1px solid {rec_color}; padding:2px 10px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
-                Authenticity: {score}% ({conf})
-            </span>
+<div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)); border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:16px 20px; margin:12px 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
+        <b style="color:#38bdf8; font-size:1rem;">🛡️ Proctorial AI Claim Authenticity Audit</b>
+        <span style="background:{rec_bg}; color:{rec_color}; border:1px solid {rec_color}; padding:2px 10px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
+            Authenticity: {score}% ({conf})
+        </span>
+    </div>
+    <div style="margin-bottom:10px;">
+        <span style="color:#94a3b8; font-size:0.85rem;">Advisory Verdict:</span>
+        <span style="color:{rec_color}; font-weight:700; font-size:0.95rem; margin-left:6px;">{rec}</span>
+    </div>
+    <div style="color:#cbd5e1; font-size:0.88rem; line-height:1.5; margin-bottom:12px;">
+        <b>Proctorial Notes:</b> {notes}
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
+            <b style="color:#10b981; font-size:0.8rem;">Corroborating Evidence:</b>
+            <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{corrob_html}</ul>
         </div>
-        <div style="margin-bottom:10px;">
-            <span style="color:#94a3b8; font-size:0.85rem;">Advisory Verdict:</span>
-            <span style="color:{rec_color}; font-weight:700; font-size:0.95rem; margin-left:6px;">{rec}</span>
-        </div>
-        <div style="color:#cbd5e1; font-size:0.88rem; line-height:1.5; margin-bottom:12px;">
-            <b>Proctorial Notes:</b> {notes}
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
-                <b style="color:#10b981; font-size:0.8rem;">Corroborating Evidence:</b>
-                <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{corrob_html}</ul>
-            </div>
-            <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
-                <b style="color:#f59e0b; font-size:0.8rem;">Flags / Discrepancies:</b>
-                <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{discrep_html}</ul>
-            </div>
-        </div>
-        <div style="text-align:right; margin-top:8px;">
-            <small style="color:#64748b; font-family:monospace;">Engine: {model}</small>
+        <div style="background:rgba(0,0,0,0.25); padding:10px; border-radius:6px;">
+            <b style="color:#f59e0b; font-size:0.8rem;">Flags / Discrepancies:</b>
+            <ul style="margin:4px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.8rem;">{discrep_html}</ul>
         </div>
     </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+    <div style="text-align:right; margin-top:8px;">
+        <small style="color:#64748b; font-family:monospace;">Engine: {model}</small>
+    </div>
+</div>
+"""
+    render_clean_html(html)
 
 def render_printable_custody_slip(item: dict):
     """Renders the official GL Bajaj Evidence & Custody Slip with scannable QR Code."""
@@ -743,33 +767,33 @@ def render_printable_custody_slip(item: dict):
     qr_img_tag = f'<img src="data:image/png;base64,{qr_b64}" width="130" height="130" style="border:1px solid #0f172a; padding:4px; background:#fff;" />' if qr_b64 else ""
 
     slip_html = f"""
-    <div class="custody-tag">
-        <div class="custody-header">
-            <span style="font-size:1.15rem; font-weight:900; color:#0f172a;">GL BAJAJ INSTITUTE OF TECHNOLOGY & MANAGEMENT</span><br>
-            <span style="font-size:0.85rem; font-weight:700; color:#475569;">OFFICE OF THE CHIEF PROCTOR • EVIDENCE & CUSTODY SLIP</span>
+<div class="custody-tag">
+    <div class="custody-header">
+        <span style="font-size:1.15rem; font-weight:900; color:#0f172a;">GL BAJAJ INSTITUTE OF TECHNOLOGY & MANAGEMENT</span><br>
+        <span style="font-size:0.85rem; font-weight:700; color:#475569;">OFFICE OF THE CHIEF PROCTOR • EVIDENCE & CUSTODY SLIP</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:16px;">
+        <div style="flex:1; font-size:0.88rem; line-height:1.7; color:#0f172a;">
+            <div><b>CUSTODY EVIDENCE ID:</b> <span style="font-size:1.05rem; font-weight:900; color:#1e3a8a;">{item_id}</span></div>
+            <div><b>ITEM DESCRIPTION:</b> {name} ({cat})</div>
+            <div><b>BRAND / COLOR:</b> {brand} • {color}</div>
+            <div><b>DISCOVERY LOCATION:</b> {loc}</div>
+            <div><b>DATE / TIME SECURED:</b> {date_found}</div>
+            <div><b>SECURED BY / DEPOSITOR:</b> {reported_by}</div>
+            <div><b>OFFICIAL NOTES:</b> <i>{desc[:110]}...</i></div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:16px;">
-            <div style="flex:1; font-size:0.88rem; line-height:1.7; color:#0f172a;">
-                <div><b>CUSTODY EVIDENCE ID:</b> <span style="font-size:1.05rem; font-weight:900; color:#1e3a8a;">{item_id}</span></div>
-                <div><b>ITEM DESCRIPTION:</b> {name} ({cat})</div>
-                <div><b>BRAND / COLOR:</b> {brand} • {color}</div>
-                <div><b>DISCOVERY LOCATION:</b> {loc}</div>
-                <div><b>DATE / TIME SECURED:</b> {date_found}</div>
-                <div><b>SECURED BY / DEPOSITOR:</b> {reported_by}</div>
-                <div><b>OFFICIAL NOTES:</b> <i>{desc[:110]}...</i></div>
-            </div>
-            <div style="text-align:center;">
-                {qr_img_tag}
-                <div style="font-size:0.7rem; font-weight:700; color:#475569; margin-top:4px;">SCAN FOR CUSTODY VERIFICATION</div>
-            </div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:12px; border-top:1px dashed #64748b; font-size:0.8rem; color:#334155;">
-            <div><b>GLBITM PROCTORIAL SIGNATURE:</b> ___________________________</div>
-            <div><b>CLAIMANT ROLL / SIGN:</b> ___________________________</div>
+        <div style="text-align:center;">
+            {qr_img_tag}
+            <div style="font-size:0.7rem; font-weight:700; color:#475569; margin-top:4px;">SCAN FOR CUSTODY VERIFICATION</div>
         </div>
     </div>
-    """
-    st.markdown(slip_html, unsafe_allow_html=True)
+    <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:12px; border-top:1px dashed #64748b; font-size:0.8rem; color:#334155;">
+        <div><b>GLBITM PROCTORIAL SIGNATURE:</b> ___________________________</div>
+        <div><b>CLAIMANT ROLL / SIGN:</b> ___________________________</div>
+    </div>
+</div>
+"""
+    render_clean_html(slip_html)
 
 def render_campus_safety_digest(insights: dict):
     """Renders executive strategic intelligence for the GLBITM Proctorial Board."""
@@ -782,32 +806,32 @@ def render_campus_safety_digest(insights: dict):
     recs_html = "".join([f"<li style='margin-bottom:6px;'>🛡️ {r}</li>" for r in recs]) if recs else "<li>Continue regular scheduled proctor sweeps.</li>"
 
     html = f"""
-    <div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.9)); border:1px solid rgba(129, 140, 248, 0.4); border-radius:14px; padding:20px 24px; margin:16px 0; box-shadow:0 10px 25px rgba(0,0,0,0.4);">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(129, 140, 248, 0.25); padding-bottom:10px; margin-bottom:14px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:1.3rem;">🧠</span>
-                <b style="color:#c7d2fe; font-size:1.1rem;">{headline}</b>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <span style="background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid #10b981; padding:3px 12px; border-radius:9999px; font-weight:800; font-size:0.8rem;">
-                    SYSTEM RECOVERY HEALTH: {health}
-                </span>
-                <span class="dossier-pill">{model}</span>
-            </div>
+<div style="background:linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.9)); border:1px solid rgba(129, 140, 248, 0.4); border-radius:14px; padding:20px 24px; margin:16px 0; box-shadow:0 10px 25px rgba(0,0,0,0.4);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(129, 140, 248, 0.25); padding-bottom:10px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">🧠</span>
+            <b style="color:#c7d2fe; font-size:1.1rem;">{headline}</b>
         </div>
-        <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:16px; background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:8px; border-left:4px solid #818cf8;">
-            <b>📍 Spatial & Categorical Loss Intelligence:</b><br>
-            {hotspot}
-        </div>
-        <div style="background:rgba(15, 23, 42, 0.7); border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:14px 18px;">
-            <b style="color:#38bdf8; font-size:0.95rem;">🎯 Proactive Proctorial Board Directives:</b>
-            <ul style="margin:8px 0 0 18px; padding:0; color:#cbd5e1; font-size:0.9rem; line-height:1.6;">
-                {recs_html}
-            </ul>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <span style="background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid #10b981; padding:3px 12px; border-radius:9999px; font-weight:800; font-size:0.8rem;">
+                SYSTEM RECOVERY HEALTH: {health}
+            </span>
+            <span class="dossier-pill">{model}</span>
         </div>
     </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+    <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:16px; background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:8px; border-left:4px solid #818cf8;">
+        <b>📍 Spatial & Categorical Loss Intelligence:</b><br>
+        {hotspot}
+    </div>
+    <div style="background:rgba(15, 23, 42, 0.7); border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:14px 18px;">
+        <b style="color:#38bdf8; font-size:0.95rem;">🎯 Proactive Proctorial Board Directives:</b>
+        <ul style="margin:8px 0 0 18px; padding:0; color:#cbd5e1; font-size:0.9rem; line-height:1.6;">
+            {recs_html}
+        </ul>
+    </div>
+</div>
+"""
+    render_clean_html(html)
 
 def render_notification_hub_admin():
     """Renders the Proctorial Automated Notification & Dispatch Console."""
@@ -1469,9 +1493,6 @@ if not is_admin:
                         st.markdown(f"**Lost:** `{m.lost_item.item_name}` ↔ **Found:** `{m.found_item.item_name}`")
                         st.write(f"📍 {m.lost_item.location} ↔ {m.found_item.location} | Source: **{m.found_item.source}**")
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
-                        if m.found_item.detailed_specs:
-                            with st.expander("🔬 View Found Item Hardware Specifications", expanded=False):
-                                render_forensic_specs_hud(m.found_item.detailed_specs)
                     with c3:
                         if st.button("🤖 AI Match Dossier", key=f"btn_stu_dos_{m.match_id}", use_container_width=True):
                             with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
@@ -1522,7 +1543,7 @@ if not is_admin:
                                     st.link_button("👉 Open in WhatsApp", res_w["action_url"])
 
                     if f"dos_stu_{m.match_id}" in st.session_state:
-                        render_ai_match_dossier(st.session_state[f"dos_stu_{m.match_id}"])
+                        render_ai_match_dossier(st.session_state[f"dos_stu_{m.match_id}"], is_admin=False)
 
     elif menu == "🔔 My Alerts & Notifications":
         render_student_notifications_view(curr_email)
@@ -1699,7 +1720,7 @@ else:
                                 st.success("✅ Previously AI-Analyzed & Verified by Proctor")
                             if item.get("detailed_specs"):
                                 with st.expander("🔬 View Verified Forensic Blueprint", expanded=False):
-                                    render_forensic_specs_hud(item["detailed_specs"])
+                                    render_forensic_specs_hud(item["detailed_specs"], is_admin=True)
 
                         with c_action:
                             st.write("")
@@ -1728,7 +1749,7 @@ else:
                                 if analyzed.get("ai_model_used"):
                                     st.info(f"⚡ Analysis Engine: **{analyzed['ai_model_used']}**")
                                 if analyzed.get("detailed_specs"):
-                                    render_forensic_specs_hud(analyzed.get("detailed_specs"))
+                                    render_forensic_specs_hud(analyzed.get("detailed_specs"), is_admin=True)
 
                                 ca1, ca2 = st.columns(2)
                                 with ca1:
@@ -1856,7 +1877,7 @@ else:
                     if ext.get("ai_model_used"):
                         st.info(f"⚡ Analysis Engine: **{ext['ai_model_used']}**")
                     if ext.get("detailed_specs"):
-                        render_forensic_specs_hud(ext.get("detailed_specs"))
+                        render_forensic_specs_hud(ext.get("detailed_specs"), is_admin=True)
 
                     st.markdown("### 📋 AI Verified Specifications (Editable)")
 
@@ -1942,7 +1963,7 @@ else:
                         st.markdown(f"🔒 **Secret Proof Provided by Student:** *\"{c.get('answers')}\"*")
                         if found_item and found_item.get("detailed_specs"):
                             with st.expander("🔬 Cross-Reference Forensic Blueprint & Proctor Challenges", expanded=False):
-                                render_forensic_specs_hud(found_item.get("detailed_specs"))
+                                render_forensic_specs_hud(found_item.get("detailed_specs"), is_admin=True)
                     with col_a:
                         if st.button("🤖 AI Claim Audit", key=f"aud_btn_{c.get('claim_id')}", use_container_width=True):
                             with st.spinner("🤖 Multimodal AI auditing claim against forensic custody data..."):
@@ -1983,8 +2004,8 @@ else:
                         st.caption(f"📍 {m.lost_item.location} ↔ {m.found_item.location} • Status: {m.found_item.status}")
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
                         if m.found_item.detailed_specs:
-                            with st.expander("🔬 View Hardware & Case Specifications", expanded=False):
-                                render_forensic_specs_hud(m.found_item.detailed_specs)
+                            with st.expander("🔬 View Proctorial Hardware & Case Specifications (Admin Backend)", expanded=False):
+                                render_forensic_specs_hud(m.found_item.detailed_specs, is_admin=True)
                     with col_m2:
                         if st.button("🤖 AI Forensic Dossier", key=f"dos_btn_mat_{m.match_id}", use_container_width=True):
                             with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
@@ -2029,7 +2050,7 @@ else:
                                         st.link_button("👉 Open Mail Client", res_em["action_url"])
 
                     if f"dos_mat_res_{m.match_id}" in st.session_state:
-                        render_ai_match_dossier(st.session_state[f"dos_mat_res_{m.match_id}"])
+                        render_ai_match_dossier(st.session_state[f"dos_mat_res_{m.match_id}"], is_admin=True)
 
     elif menu == "🔔 Automated Notification Hub":
         render_notification_hub_admin()
