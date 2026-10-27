@@ -367,12 +367,12 @@ def render_clean_html(html_str: str):
 
 def render_item_specs_profile(specs: dict, is_admin: bool = True):
     """
-    Renders clean, robust Item Hardware & Visual Specifications Profile.
-    Displays exhaustive hardware architecture for earbuds, cases, electronics, and secret proctor verification challenges.
+    Renders Item Hardware & Visual Specifications Profile using pure native Streamlit components.
+    Guarantees 100% clean UI rendering with zero raw HTML exposure and zero CommonMark code-block bugs.
     """
     if not specs or not isinstance(specs, dict):
         return
-    
+
     spec_type = specs.get("specs_type", "")
     is_earbuds = (
         spec_type == "earbuds_case" or 
@@ -382,84 +382,94 @@ def render_item_specs_profile(specs: dict, is_admin: bool = True):
         "airpod" in str(specs).lower() or 
         "airdopes" in str(specs).lower()
     )
-    
-    if is_earbuds:
-        cs = specs.get("case_specs", {})
-        eb = specs.get("earbud_specs", {})
-        
-        case_items = [
-            ("📦 Case Form Factor", cs.get("form_factor") or specs.get("case_form_factor") or "Pill-shaped compact charging pod"),
-            ("🛡️ Finish & Material", cs.get("material_and_finish") or specs.get("case_finish_material") or "Matte ABS polymer chassis"),
-            ("⚡ Charging Port", cs.get("charging_port") or specs.get("charging_port") or "USB Type-C"),
-            ("💡 LED Indicators", cs.get("led_indicators") or specs.get("led_indicators") or "Battery status LED indicator"),
-            ("🧲 Hinge & Lid Mechanism", cs.get("hinge_and_latch") or specs.get("hinge_and_lid") or "Reinforced magnetic closure"),
-            ("🧥 Protective Sleeve", cs.get("protective_sleeve") or specs.get("protective_sleeve") or "Standard naked case"),
-        ]
-        
-        bud_items = [
-            ("🎵 Earbud Form Factor", eb.get("earbud_style") or specs.get("earbuds_style") or "In-ear stem style"),
-            ("👥 Docked Status", eb.get("docking_status") or specs.get("docked_status") or "Both Left & Right docked"),
-            ("🔘 Silicone Ear Tips", eb.get("silicone_tips") or specs.get("ear_tips") or "Medium silicone gel tips"),
-            ("👆 Sensor Controls", eb.get("controls_sensors") or specs.get("controls_and_sensors") or "Capacitive touch sensors"),
-            ("🎙️ Acoustic / Mic Mesh", eb.get("microphone_mesh") or specs.get("mesh_and_grilles") or "Micro-perforated acoustic filter"),
-            ("🟡 Charging Contacts", eb.get("charging_contacts") or specs.get("charging_contacts") or "Dual gold pogo-pin terminals"),
-        ]
-        
-        marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
-        questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
-        
-        st.markdown("#### 🎧 TWS Earbuds & Charging Case Hardware Profile")
-        col_c, col_b = st.columns(2)
-        with col_c:
-            with st.container(border=True):
-                st.markdown("<b style='color:#38bdf8; font-size:0.95rem;'>📦 Charging Case Architecture</b>", unsafe_allow_html=True)
-                for k, v in case_items:
-                    st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
-        with col_b:
-            with st.container(border=True):
-                st.markdown("<b style='color:#818cf8; font-size:0.95rem;'>🎵 Earbuds Hardware Anatomy</b>", unsafe_allow_html=True)
-                for k, v in bud_items:
-                    st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
 
-        if marks:
-            st.markdown("<b style='color:#f87171; font-size:0.88rem;'>🔍 Distinguishing Physical Marks & Unique Features:</b>", unsafe_allow_html=True)
-            marks_html = " ".join([f"<span class='mark-tag'>🔍 {m}</span>" for m in marks])
-            st.markdown(f"<div>{marks_html}</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        if is_earbuds:
+            cs = specs.get("case_specs", {})
+            eb = specs.get("earbud_specs", {})
+            
+            st.markdown("### 🎧 TWS Earbuds & Charging Case Hardware Profile")
+            st.caption("AI-extracted component architecture and physical verification cues.")
+            
+            c_left, c_right = st.columns(2)
+            
+            with c_left:
+                st.markdown("##### 📦 Charging Case Architecture")
+                case_items = [
+                    ("Case Form Factor", cs.get("form_factor") or specs.get("case_form_factor") or "Pill-shaped compact charging pod"),
+                    ("Finish & Material", cs.get("material_and_finish") or specs.get("case_finish_material") or "Matte ABS polymer chassis"),
+                    ("Charging Port", cs.get("charging_port") or specs.get("charging_port") or "USB Type-C"),
+                    ("LED Indicators", cs.get("led_indicators") or specs.get("led_indicators") or "Battery status LED indicator"),
+                    ("Hinge & Lid Mechanism", cs.get("hinge_and_latch") or specs.get("hinge_and_lid") or "Reinforced magnetic closure"),
+                    ("Protective Sleeve", cs.get("protective_sleeve") or specs.get("protective_sleeve") or "Standard naked case"),
+                ]
+                for key, val in case_items:
+                    st.markdown(f"- **{key}:** {val}")
 
-        if is_admin and questions:
-            with st.container(border=True):
-                st.markdown("<b style='color:#fbbf24; font-size:0.9rem;'>🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</b>", unsafe_allow_html=True)
+            with c_right:
+                st.markdown("##### 🎵 Earbuds Hardware Anatomy")
+                bud_items = [
+                    ("Earbud Form Factor", eb.get("earbud_style") or specs.get("earbuds_style") or "In-ear stem style"),
+                    ("Docked Status", eb.get("docking_status") or specs.get("docked_status") or "Both Left & Right docked"),
+                    ("Silicone Ear Tips", eb.get("silicone_tips") or specs.get("ear_tips") or "Medium silicone gel tips"),
+                    ("Sensor Controls", eb.get("controls_sensors") or specs.get("controls_and_sensors") or "Capacitive touch sensors"),
+                    ("Acoustic / Mic Mesh", eb.get("microphone_mesh") or specs.get("mesh_and_grilles") or "Micro-perforated acoustic filter"),
+                    ("Charging Contacts", eb.get("charging_contacts") or specs.get("charging_contacts") or "Dual gold pogo-pin terminals"),
+                ]
+                for key, val in bud_items:
+                    st.markdown(f"- **{key}:** {val}")
+
+            marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
+            if marks:
+                st.divider()
+                st.markdown("##### 🔍 Distinguishing Physical Marks & Unique Signs")
+                for m in marks:
+                    st.info(f"🔍 **Mark:** {m}")
+
+            questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
+            if is_admin and questions:
+                st.divider()
+                st.markdown("##### 🔐 Proctorial Board Secret Verification Challenges (Ask Claimant)")
                 for i, q in enumerate(questions):
-                    st.markdown(f"<div style='padding:4px 0; font-size:0.84rem; color:#fef08a;'>❓ <b>Question #{i+1}:</b> {q}</div>", unsafe_allow_html=True)
-    else:
-        raw_attrs = specs.get("item_attributes")
-        if not raw_attrs:
-            raw_attrs = {
-                k.replace("_", " ").title(): v
-                for k, v in specs.items()
-                if k not in ["specs_type", "distinguishing_marks", "forensic_marks", "verification_questions", "ownership_challenge_questions", "item_subtype"]
-                and isinstance(v, (str, int, float))
-            }
-        marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
-        questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
-        subtype = specs.get("item_subtype", "Item Hardware & Visual Profile")
-        
-        st.markdown(f"#### 🔬 {subtype}")
-        with st.container(border=True):
-            st.markdown("<b style='color:#38bdf8; font-size:0.95rem;'>📐 Hardware Attributes & Geometry</b>", unsafe_allow_html=True)
-            for k, v in raw_attrs.items():
-                st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
+                    st.warning(f"**Question #{i+1}:** {q}")
 
-        if marks:
-            st.markdown("<b style='color:#f87171; font-size:0.88rem;'>🔍 Distinguishing Physical Marks:</b>", unsafe_allow_html=True)
-            marks_html = " ".join([f"<span class='mark-tag'>🔍 {m}</span>" for m in marks])
-            st.markdown(f"<div>{marks_html}</div>", unsafe_allow_html=True)
+        else:
+            raw_attrs = specs.get("item_attributes")
+            if not raw_attrs:
+                raw_attrs = {
+                    k.replace("_", " ").title(): v
+                    for k, v in specs.items()
+                    if k not in ["specs_type", "distinguishing_marks", "forensic_marks", "visual_marks", "verification_questions", "ownership_challenge_questions", "item_subtype"]
+                    and isinstance(v, (str, int, float))
+                }
+            subtype = specs.get("item_subtype", "Item Hardware & Visual Profile")
+            st.markdown(f"### 🔬 {subtype}")
+            
+            if raw_attrs:
+                st.markdown("##### 📐 Physical Attributes & Geometry")
+                cols = st.columns(2)
+                items_list = list(raw_attrs.items())
+                half = (len(items_list) + 1) // 2
+                with cols[0]:
+                    for k, v in items_list[:half]:
+                        st.markdown(f"- **{k}:** {v}")
+                with cols[1]:
+                    for k, v in items_list[half:]:
+                        st.markdown(f"- **{k}:** {v}")
 
-        if is_admin and questions:
-            with st.container(border=True):
-                st.markdown("<b style='color:#fbbf24; font-size:0.9rem;'>🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</b>", unsafe_allow_html=True)
+            marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
+            if marks:
+                st.divider()
+                st.markdown("##### 🔍 Distinguishing Physical Marks & Unique Signs")
+                for m in marks:
+                    st.info(f"🔍 **Mark:** {m}")
+
+            questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
+            if is_admin and questions:
+                st.divider()
+                st.markdown("##### 🔐 Proctorial Board Secret Verification Challenges (Ask Claimant)")
                 for i, q in enumerate(questions):
-                    st.markdown(f"<div style='padding:4px 0; font-size:0.84rem; color:#fef08a;'>❓ <b>Question #{i+1}:</b> {q}</div>", unsafe_allow_html=True)
+                    st.warning(f"**Question #{i+1}:** {q}")
 
 # Backward-compatible alias
 render_forensic_specs_hud = render_item_specs_profile
@@ -642,7 +652,6 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
     {bottom_box}
 </div>
 """
-    render_clean_html(html)
     render_clean_html(html)
 
 def render_ai_claim_audit(audit: dict):
@@ -1846,6 +1855,8 @@ else:
                     
                     if ext.get("ai_model_used"):
                         st.info(f"⚡ Analysis Engine: **{ext['ai_model_used']}**")
+                    if ext.get("detailed_specs"):
+                        render_item_specs_profile(ext.get("detailed_specs"), is_admin=True)
 
                     st.markdown("### 📋 AI Verified Specifications (Editable)")
 
