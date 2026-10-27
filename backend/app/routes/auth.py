@@ -31,6 +31,16 @@ def register(req: UserRegister):
     if existing:
         raise HTTPException(status_code=400, detail="An account with this email address already exists.")
         
+    if req.student_id and db.get_user_by_student_id(req.student_id):
+        raise HTTPException(status_code=400, detail=f"Roll Number / Registration Number '{req.student_id}' is already registered.")
+
+    if req.phone:
+        clean_p = "".join(filter(str.isdigit, str(req.phone)))
+        if len(clean_p) < 10:
+            raise HTTPException(status_code=400, detail="Invalid mobile number. Please provide a valid 10-digit number.")
+        if db.get_user_by_phone(req.phone):
+            raise HTTPException(status_code=400, detail="This contact mobile number is already registered with another account. Duplicate number registration is not allowed.")
+
     user_id = f"USR-{uuid.uuid4().hex[:6].upper()}"
     new_user = User(
         user_id=user_id,

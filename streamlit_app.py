@@ -998,30 +998,41 @@ if st.session_state.auth_user is None:
                         "Semester 1 (1st Year)", "Semester 2 (1st Year)", "Semester 3 (2nd Year)", "Semester 4 (2nd Year)",
                         "Semester 5 (3rd Year)", "Semester 6 (3rd Year)", "Semester 7 (4th Year)", "Semester 8 (4th Year)"
                     ])
-                    s_phone = st.text_input("Contact Mobile Number", placeholder="+91 9876543210")
+                    s_phone = st.text_input("Contact Mobile Number (for WhatsApp Alerts) *", placeholder="+91 9876543210")
 
                 s_pass = st.text_input("Create Password *", type="password")
                 s_pass_conf = st.text_input("Confirm Password *", type="password")
                 btn_signup = st.form_submit_button("📝 Complete Student Registration", use_container_width=True, type="primary")
 
                 if btn_signup:
-                    if not s_name.strip() or not s_roll.strip() or not s_email.strip() or not s_pass:
+                    clean_phone = "".join(filter(str.isdigit, s_phone)) if s_phone else ""
+                    clean_roll = s_roll.strip().upper()
+                    clean_email = s_email.strip().lower()
+
+                    if not s_name.strip() or not clean_roll or not clean_email or not s_phone.strip() or not s_pass:
                         st.error("Please fill in all mandatory fields (*).")
                     elif s_pass != s_pass_conf:
                         st.error("Passwords do not match!")
-                    elif db.get_user_by_email(s_email):
-                        st.error("A student account with this email is already registered. Please sign in.")
+                    elif len(clean_phone) < 10:
+                        st.error("⚠️ Invalid mobile number! Please provide a valid 10-digit phone number (e.g. +91 9876543210) for automated WhatsApp claim alerts.")
+                    elif db.get_user_by_email(clean_email):
+                        st.error(f"🚫 Duplicate Email: An account with email '{clean_email}' already exists. Please sign in.")
+                    elif db.get_user_by_student_id(clean_roll):
+                        st.error(f"🚫 Duplicate Registration Number: Roll Number '{clean_roll}' is already registered with another student account. Duplicate registration is strictly prohibited.")
+                    elif db.get_user_by_phone(s_phone):
+                        st.error(f"🚫 Duplicate Mobile Number: Mobile number '{s_phone.strip()}' is already registered with an existing student account. Same number registration is strictly prohibited.")
                     else:
+                        formatted_phone = f"+91 {clean_phone[-10:]}"
                         new_student = User(
                             user_id=f"USR-{uuid.uuid4().hex[:6].upper()}",
                             name=s_name.strip(),
-                            email=s_email.strip().lower(),
+                            email=clean_email,
                             password_hash=s_pass,
                             role="STUDENT",
-                            student_id=s_roll.strip(),
+                            student_id=clean_roll,
                             department=s_dept,
                             semester=s_sem,
-                            phone=s_phone
+                            phone=formatted_phone
                         )
                         saved_user = db.add_user(new_student.model_dump())
                         st.session_state.auth_user = saved_user

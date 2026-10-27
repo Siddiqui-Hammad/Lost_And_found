@@ -73,10 +73,17 @@ def student_register(req: StudentRegisterRequest):
     if existing:
         raise HTTPException(status_code=400, detail="A student with this email address already exists.")
     
-    # Check if student ID already registered
-    for u in db.get_users():
-        if u.get("student_id") and u.get("student_id").strip().lower() == req.student_id.strip().lower():
-            raise HTTPException(status_code=400, detail="This Roll Number / Student ID is already registered.")
+    # Check if student ID (roll number / registration number) already registered
+    if db.get_user_by_student_id(req.student_id):
+        raise HTTPException(status_code=400, detail=f"Roll Number / Registration Number '{req.student_id}' is already registered with another account.")
+
+    # Check if phone number already registered (prevent duplicate same-number registration)
+    if req.phone:
+        clean_p = "".join(filter(str.isdigit, str(req.phone)))
+        if len(clean_p) < 10:
+            raise HTTPException(status_code=400, detail="Invalid mobile number. Please provide a valid 10-digit number.")
+        if db.get_user_by_phone(req.phone):
+            raise HTTPException(status_code=400, detail="This contact mobile number is already registered with another student account. Duplicate number registration is not allowed.")
 
     new_user = User(
         id=f"USR-{uuid.uuid4().hex[:6].upper()}",
@@ -130,6 +137,12 @@ def register(req: RegisterRequest):
     existing = db.get_user_by_email(req.email)
     if existing:
         return {"status": "success", "user": existing, "token": f"bearer_{existing['id']}"}
+        
+    if req.student_id and db.get_user_by_student_id(req.student_id):
+        raise HTTPException(status_code=400, detail=f"Roll Number / Registration Number '{req.student_id}' is already registered.")
+
+    if req.phone and db.get_user_by_phone(req.phone):
+        raise HTTPException(status_code=400, detail="This contact mobile number is already registered with another account.")
     
     new_user = User(
         id=f"USR-{uuid.uuid4().hex[:6].upper()}",

@@ -137,6 +137,36 @@ class Database:
                 return u
         return None
 
+    @staticmethod
+    def canonical_phone(phone: str) -> str:
+        """Extract canonical trailing 10 digits from any phone format."""
+        digits = "".join(filter(str.isdigit, str(phone or "")))
+        return digits[-10:] if len(digits) >= 10 else digits
+
+    def get_user_by_student_id(self, student_id: str) -> Optional[dict]:
+        """Lookup user by College Roll Number / Registration Number."""
+        target = str(student_id or "").strip().lower()
+        if not target:
+            return None
+        if self.is_connected:
+            return self.mongo_db.users.find_one({"student_id": {"$regex": f"^{target}$", "$options": "i"}}, {"_id": 0})
+        for u in self.collections["users"].values():
+            if str(u.get("student_id") or "").strip().lower() == target:
+                return u
+        return None
+
+    def get_user_by_phone(self, phone: str) -> Optional[dict]:
+        """Lookup user by phone number using canonical 10-digit comparison to prevent duplicate numbers."""
+        canon = self.canonical_phone(phone)
+        if not canon or len(canon) < 10:
+            return None
+        users = self.get_users()
+        for u in users:
+            u_phone = u.get("phone")
+            if u_phone and self.canonical_phone(u_phone) == canon:
+                return u
+        return None
+
     def add_user(self, user_dict: dict) -> dict:
         if self.is_connected:
             self.mongo_db.users.insert_one(user_dict.copy())
