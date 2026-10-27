@@ -139,8 +139,8 @@ st.markdown("""
         animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
-    /* Forensic Blueprint HUD */
-    .forensic-hud {
+    /* Item Specifications & Hardware Profile Card */
+    .specs-profile-card, .forensic-hud {
         background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85));
         border: 1px solid rgba(56, 189, 248, 0.35);
         border-radius: 14px;
@@ -215,7 +215,7 @@ st.markdown("""
         line-height: 1.4;
     }
     
-    /* AI Forensic Dossier & Reports */
+    /* AI Match & Verification Dossier */
     .ai-dossier {
         background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.85));
         border: 1px solid rgba(129, 140, 248, 0.4);
@@ -361,12 +361,13 @@ ITEM_CATEGORIES = [
 ]
 
 def render_clean_html(html_str: str):
-    """Safely renders raw HTML in Streamlit, stripping leading indentation to prevent CommonMark code block conversion."""
-    st.markdown(textwrap.dedent(html_str).strip(), unsafe_allow_html=True)
+    """Safely renders raw HTML in Streamlit, stripping all leading indentation per line to prevent CommonMark code block conversion."""
+    cleaned = "\n".join(line.lstrip() for line in html_str.splitlines() if line.strip())
+    st.markdown(cleaned, unsafe_allow_html=True)
 
-def render_forensic_specs_hud(specs: dict, is_admin: bool = True):
+def render_item_specs_profile(specs: dict, is_admin: bool = True):
     """
-    Renders high-tech Forensic Item Specification Blueprint HUD for the Proctorial Board Backend.
+    Renders clean, robust Item Hardware & Visual Specifications Profile.
     Displays exhaustive hardware architecture for earbuds, cases, electronics, and secret proctor verification challenges.
     """
     if not specs or not isinstance(specs, dict):
@@ -404,58 +405,32 @@ def render_forensic_specs_hud(specs: dict, is_admin: bool = True):
             ("🟡 Charging Contacts", eb.get("charging_contacts") or specs.get("charging_contacts") or "Dual gold pogo-pin terminals"),
         ]
         
-        marks = specs.get("distinguishing_marks") or specs.get("forensic_marks") or []
+        marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
         questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
         
-        case_rows_html = "".join([
-            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
-            for k, v in case_items
-        ])
-        
-        bud_rows_html = "".join([
-            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
-            for k, v in bud_items
-        ])
-        
-        marks_html = "".join([f'<span class="mark-tag">🔍 {m}</span>' for m in marks]) if marks else '<span style="color:#94a3b8; font-size:0.85rem;">Standard cosmetic condition</span>'
-        
-        questions_html = "".join([
-            f'<div class="challenge-q">❓ <b>Challenge #{i+1}:</b> {q}</div>'
-            for i, q in enumerate(questions)
-        ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant about case color, charging port, and internal earbud markings.</div>'
-        
-        challenges_block = f"""
-<div class="challenge-card">
-    <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</div>
-    {questions_html}
-</div>
-""" if is_admin else ""
+        st.markdown("#### 🎧 TWS Earbuds & Charging Case Hardware Profile")
+        col_c, col_b = st.columns(2)
+        with col_c:
+            with st.container(border=True):
+                st.markdown("<b style='color:#38bdf8; font-size:0.95rem;'>📦 Charging Case Architecture</b>", unsafe_allow_html=True)
+                for k, v in case_items:
+                    st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
+        with col_b:
+            with st.container(border=True):
+                st.markdown("<b style='color:#818cf8; font-size:0.95rem;'>🎵 Earbuds Hardware Anatomy</b>", unsafe_allow_html=True)
+                for k, v in bud_items:
+                    st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
 
-        hud_html = f"""
-<div class="forensic-hud">
-    <div class="hud-title">🎧 TWS Earbuds & Charging Case Forensic Blueprint</div>
-    
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
-        <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2);">
-            <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📦 Charging Case Architecture</div>
-            {case_rows_html}
-        </div>
-        <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(129, 140, 248, 0.2);">
-            <div style="color:#818cf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">🎵 Earbuds Hardware Anatomy</div>
-            {bud_rows_html}
-        </div>
-    </div>
-    
-    <div style="margin-top: 10px;">
-        <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks & Wear:</div>
-        <div>{marks_html}</div>
-    </div>
-    
-    {challenges_block}
-</div>
-"""
-        render_clean_html(hud_html)
-    
+        if marks:
+            st.markdown("<b style='color:#f87171; font-size:0.88rem;'>🔍 Distinguishing Physical Marks & Unique Features:</b>", unsafe_allow_html=True)
+            marks_html = " ".join([f"<span class='mark-tag'>🔍 {m}</span>" for m in marks])
+            st.markdown(f"<div>{marks_html}</div>", unsafe_allow_html=True)
+
+        if is_admin and questions:
+            with st.container(border=True):
+                st.markdown("<b style='color:#fbbf24; font-size:0.9rem;'>🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</b>", unsafe_allow_html=True)
+                for i, q in enumerate(questions):
+                    st.markdown(f"<div style='padding:4px 0; font-size:0.84rem; color:#fef08a;'>❓ <b>Question #{i+1}:</b> {q}</div>", unsafe_allow_html=True)
     else:
         raw_attrs = specs.get("item_attributes")
         if not raw_attrs:
@@ -465,47 +440,29 @@ def render_forensic_specs_hud(specs: dict, is_admin: bool = True):
                 if k not in ["specs_type", "distinguishing_marks", "forensic_marks", "verification_questions", "ownership_challenge_questions", "item_subtype"]
                 and isinstance(v, (str, int, float))
             }
-        
-        marks = specs.get("distinguishing_marks") or specs.get("forensic_marks") or []
+        marks = specs.get("distinguishing_marks") or specs.get("visual_marks") or []
         questions = specs.get("ownership_challenge_questions") or specs.get("verification_questions") or []
-        subtype = specs.get("item_subtype", "Forensic Item Specification Blueprint")
+        subtype = specs.get("item_subtype", "Item Hardware & Visual Profile")
         
-        rows_html = "".join([
-            f'<div class="spec-row"><span class="spec-key">{k}</span><span class="spec-val">{v}</span></div>'
-            for k, v in raw_attrs.items()
-        ]) if raw_attrs else '<div class="spec-row"><span class="spec-key">Item Profile</span><span class="spec-val">Standard Physical Specimen</span></div>'
-        
-        marks_html = "".join([f'<span class="mark-tag">🔍 {m}</span>' for m in marks]) if marks else '<span style="color:#94a3b8; font-size:0.85rem;">Standard cosmetic condition</span>'
-        questions_html = "".join([
-            f'<div class="challenge-q">❓ <b>Challenge #{i+1}:</b> {q}</div>'
-            for i, q in enumerate(questions)
-        ]) if questions else '<div style="color:#94a3b8; font-size:0.85rem;">Ask claimant to describe brand markings, stickers, or internal contents.</div>'
-        
-        challenges_block = f"""
-<div class="challenge-card">
-    <div style="color:#fbbf24; font-weight:700; font-size:0.9rem; margin-bottom:6px;">🔐 Proctorial Board Secret Verification Challenges:</div>
-    {questions_html}
-</div>
-""" if is_admin else ""
+        st.markdown(f"#### 🔬 {subtype}")
+        with st.container(border=True):
+            st.markdown("<b style='color:#38bdf8; font-size:0.95rem;'>📐 Hardware Attributes & Geometry</b>", unsafe_allow_html=True)
+            for k, v in raw_attrs.items():
+                st.markdown(f"<div style='display:flex; justify-content:space-between; padding:3px 0; font-size:0.83rem;'><span style='color:#94a3b8;'>{k}</span><span style='color:#e2e8f0; font-weight:600;'>{v}</span></div>", unsafe_allow_html=True)
 
-        hud_html = f"""
-<div class="forensic-hud">
-    <div class="hud-title">🔬 {subtype}</div>
-    
-    <div style="background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 12px;">
-        <div style="color:#38bdf8; font-weight:700; font-size:0.95rem; margin-bottom:8px;">📐 Hardware Attributes & Geometry</div>
-        {rows_html}
-    </div>
-    
-    <div style="margin-top: 10px;">
-        <div style="color:#f87171; font-weight:700; font-size:0.9rem; margin-bottom:5px;">🔍 Distinguishing Forensic Marks:</div>
-        <div>{marks_html}</div>
-    </div>
-    
-    {challenges_block}
-</div>
-"""
-        render_clean_html(hud_html)
+        if marks:
+            st.markdown("<b style='color:#f87171; font-size:0.88rem;'>🔍 Distinguishing Physical Marks:</b>", unsafe_allow_html=True)
+            marks_html = " ".join([f"<span class='mark-tag'>🔍 {m}</span>" for m in marks])
+            st.markdown(f"<div>{marks_html}</div>", unsafe_allow_html=True)
+
+        if is_admin and questions:
+            with st.container(border=True):
+                st.markdown("<b style='color:#fbbf24; font-size:0.9rem;'>🔐 Proctorial Board Secret Verification Challenges (Ask Claimant):</b>", unsafe_allow_html=True)
+                for i, q in enumerate(questions):
+                    st.markdown(f"<div style='padding:4px 0; font-size:0.84rem; color:#fef08a;'>❓ <b>Question #{i+1}:</b> {q}</div>", unsafe_allow_html=True)
+
+# Backward-compatible alias
+render_forensic_specs_hud = render_item_specs_profile
 
 def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, current_user: dict):
     """
@@ -546,7 +503,7 @@ def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, c
 
     if run_query and user_query.strip():
         st.session_state["last_nl_query"] = user_query.strip()
-        with st.spinner("🤖 Gemini AI reading campus registry & matching forensic specs..."):
+        with st.spinner("🤖 Gemini AI reading campus registry & matching item specifications..."):
             found_items = db.get_found_items()
             lost_items = db.get_lost_items()
             nl_res = gemini_intel.natural_language_search(user_query.strip(), found_items, lost_items)
@@ -589,7 +546,7 @@ def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, c
                             st.write(f"*{item.get('description')}*")
                             if is_admin and item.get("detailed_specs"):
                                 with st.expander("🔬 View Proctorial Hardware Specifications (Admin Backend Only)", expanded=False):
-                                    render_forensic_specs_hud(item["detailed_specs"], is_admin=True)
+                                    render_item_specs_profile(item["detailed_specs"], is_admin=True)
                         with c_act:
                             if not is_admin:
                                 with st.popover("🙋 File Claim"):
@@ -620,7 +577,7 @@ def render_ask_findback_ai_view(is_admin: bool, curr_id: str, curr_email: str, c
                                 st.caption(f"Reported by: **{item.get('reported_by_name')}**")
 
 def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
-    """Renders the AI Forensic Match Dossier with verification challenges (Admin backend only) and reasoning."""
+    """Renders the AI Match & Verification Dossier with verification challenges (Admin backend only) and reasoning."""
     verdict = dossier.get("verdict", "PROBABLE MATCH")
     score = dossier.get("confidence_score", 85)
     model = dossier.get("model_used", "Gemini AI")
@@ -648,7 +605,7 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
     else:
         bottom_box = """
 <div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(56, 189, 248, 0.25); border-radius:8px; padding:10px 14px; margin-top:8px;">
-    <small style="color:#94a3b8;">🔒 <b>Proctorial Security Protocol:</b> Full physical hardware blueprints and in-person verification challenges are held securely in the Administrator Backend.</small>
+    <small style="color:#94a3b8;">🔒 <b>Proctorial Security Protocol:</b> Full physical hardware profiles and in-person verification challenges are held securely in the Administrator Backend.</small>
 </div>
 """
 
@@ -656,7 +613,7 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
 <div class="ai-dossier">
     <div class="dossier-header">
         <div class="dossier-title">
-            <span>🔬 GL Bajaj AI Forensic Match Dossier</span>
+            <span>🔬 GL Bajaj AI Match & Verification Dossier</span>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
             <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; padding:3px 12px; border-radius:9999px; font-weight:700; font-size:0.8rem;">
@@ -666,7 +623,7 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
         </div>
     </div>
     <div style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:14px;">
-        <b>Forensic Correlation Analysis:</b> {summary}
+        <b>AI Visual & Feature Correlation:</b> {summary}
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
         <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #10b981;">
@@ -676,7 +633,7 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
             </ul>
         </div>
         <div style="background:rgba(15, 23, 42, 0.6); padding:12px; border-radius:8px; border-left:3px solid #f59e0b;">
-            <b style="color:#f59e0b; font-size:0.88rem;">Forensic Discrepancies / Checks:</b>
+            <b style="color:#f59e0b; font-size:0.88rem;">Verification Checks & Discrepancies:</b>
             <ul style="margin:8px 0 0 16px; padding:0; color:#cbd5e1; font-size:0.85rem;">
                 {discrepancies_html}
             </ul>
@@ -685,6 +642,7 @@ def render_ai_match_dossier(dossier: dict, is_admin: bool = False):
     {bottom_box}
 </div>
 """
+    render_clean_html(html)
     render_clean_html(html)
 
 def render_ai_claim_audit(audit: dict):
@@ -1394,7 +1352,7 @@ if not is_admin:
 
         else:
             st.info(f"Reporting as **{current_user.get('name')}** (GLBITM Roll/ID: {current_user.get('student_id')}).")
-            st.caption("📷 Simply snap or upload a photo, select where you found it, and write a brief description. No extra forms needed—the Proctorial Board Administrator will run AI forensic analysis to extract all details.")
+            st.caption("📷 Simply snap or upload a photo, select where you found it, and write a brief description. No extra forms needed—the Proctorial Board Administrator will run AI vision analysis to extract all details.")
 
             col_cam_opt, col_loc = st.columns([1.2, 1])
             with col_cam_opt:
@@ -1506,7 +1464,7 @@ if not is_admin:
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
                     with c3:
                         if st.button("🤖 AI Match Dossier", key=f"btn_stu_dos_{m.match_id}", use_container_width=True):
-                            with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
+                            with st.spinner("🤖 Gemini AI compiling verification dossier..."):
                                 st.session_state[f"dos_stu_{m.match_id}"] = gemini_intel.explain_match(
                                     m.lost_item.model_dump(),
                                     m.found_item.model_dump(),
@@ -1639,7 +1597,7 @@ else:
         render_ask_findback_ai_view(is_admin, curr_id, curr_email, current_user)
 
     elif menu == "📸 AI Vision Item Intake & Analyzer":
-        st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Forensic Analyzer")
+        st.subheader("📸 GL Bajaj Proctorial AI Vision Intake & Specifications Analyzer")
         st.caption("Administrator tool: Review student-reported found items (with camera photos/descriptions) OR intake new physical items into the Proctor Office. The Multimodal AI extracts item specifications, color palette, condition, and generates an official campus description.")
 
         # Live Gemini AI Configuration & Status Panel
@@ -1730,8 +1688,8 @@ else:
                             if item.get("ai_analyzed"):
                                 st.success("✅ Previously AI-Analyzed & Verified by Proctor")
                             if item.get("detailed_specs"):
-                                with st.expander("🔬 View Verified Forensic Blueprint", expanded=False):
-                                    render_forensic_specs_hud(item["detailed_specs"], is_admin=True)
+                                with st.expander("🔬 View Verified Hardware Profile & Specs", expanded=False):
+                                    render_item_specs_profile(item["detailed_specs"], is_admin=True)
 
                         with c_action:
                             st.write("")
@@ -1756,11 +1714,12 @@ else:
                         # If analysis exists for this item, show results and confirmation
                         if f"analysis_{item.get('item_id')}" in st.session_state:
                             analyzed = st.session_state[f"analysis_{item.get('item_id')}"]
-                            with st.expander(f"✨ AI Forensic Analysis for {item.get('item_id')}", expanded=True):
+                            with st.expander(f"✨ AI Visual & Hardware Analysis for {item.get('item_id')}", expanded=True):
                                 if analyzed.get("ai_model_used"):
                                     st.info(f"⚡ Analysis Engine: **{analyzed['ai_model_used']}**")
                                 if analyzed.get("detailed_specs"):
-                                    render_forensic_specs_hud(analyzed.get("detailed_specs"), is_admin=True)
+                                    with st.expander("🔍 View Extracted Hardware Details & Verification Questions", expanded=False):
+                                        render_item_specs_profile(analyzed.get("detailed_specs"), is_admin=True)
 
                                 ca1, ca2 = st.columns(2)
                                 with ca1:
@@ -1856,7 +1815,7 @@ else:
                         st.markdown("""
                         <div style="border: 2px dashed #475569; border-radius: 12px; padding: 40px 16px; text-align: center; color: #94a3b8;">
                             <span style="font-size: 2.8rem;">🔬</span><br>
-                            <b>Forensic Item Preview</b><br>
+                            <b>Item Visual Preview</b><br>
                             <small>Upload an item photo to run AI Vision Analysis</small>
                         </div>
                         """, unsafe_allow_html=True)
@@ -1887,8 +1846,6 @@ else:
                     
                     if ext.get("ai_model_used"):
                         st.info(f"⚡ Analysis Engine: **{ext['ai_model_used']}**")
-                    if ext.get("detailed_specs"):
-                        render_forensic_specs_hud(ext.get("detailed_specs"), is_admin=True)
 
                     st.markdown("### 📋 AI Verified Specifications (Editable)")
 
@@ -1959,7 +1916,7 @@ else:
 
     elif menu == "🛡️ Claims Verification Desk":
         st.subheader("🛡️ GL Bajaj Proctorial Board Verification Desk")
-        st.caption("Review student ownership claims, run AI authenticity audits against forensic blueprints, and release items.")
+        st.caption("Review student ownership claims, run AI authenticity audits against verified specifications, and release items.")
         claims = db.get_claims()
         if not claims:
             st.info("No claims currently submitted.")
@@ -1973,11 +1930,11 @@ else:
                         st.write(f"Claimant: **{c.get('student_name')}** ({c.get('student_email')} • Roll: `{c.get('student_id')}`)")
                         st.markdown(f"🔒 **Secret Proof Provided by Student:** *\"{c.get('answers')}\"*")
                         if found_item and found_item.get("detailed_specs"):
-                            with st.expander("🔬 Cross-Reference Forensic Blueprint & Proctor Challenges", expanded=False):
-                                render_forensic_specs_hud(found_item.get("detailed_specs"), is_admin=True)
+                            with st.expander("🔬 Cross-Reference Hardware Profile & Proctor Questions", expanded=False):
+                                render_item_specs_profile(found_item.get("detailed_specs"), is_admin=True)
                     with col_a:
                         if st.button("🤖 AI Claim Audit", key=f"aud_btn_{c.get('claim_id')}", use_container_width=True):
-                            with st.spinner("🤖 Multimodal AI auditing claim against forensic custody data..."):
+                            with st.spinner("🤖 Multimodal AI auditing claim against verified custody record..."):
                                 st.session_state[f"audit_{c.get('claim_id')}"] = gemini_intel.evaluate_claim(c.get("answers", ""), found_item or {})
 
                         if c.get("status") == "PENDING":
@@ -2016,10 +1973,10 @@ else:
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
                         if m.found_item.detailed_specs:
                             with st.expander("🔬 View Proctorial Hardware & Case Specifications (Admin Backend)", expanded=False):
-                                render_forensic_specs_hud(m.found_item.detailed_specs, is_admin=True)
+                                render_item_specs_profile(m.found_item.detailed_specs, is_admin=True)
                     with col_m2:
-                        if st.button("🤖 AI Forensic Dossier", key=f"dos_btn_mat_{m.match_id}", use_container_width=True):
-                            with st.spinner("🤖 Gemini AI compiling forensic correlation dossier..."):
+                        if st.button("🤖 AI Verification Dossier", key=f"dos_btn_mat_{m.match_id}", use_container_width=True):
+                            with st.spinner("🤖 Gemini AI compiling verification dossier..."):
                                 st.session_state[f"dos_mat_res_{m.match_id}"] = gemini_intel.explain_match(
                                     m.lost_item.model_dump(),
                                     m.found_item.model_dump(),

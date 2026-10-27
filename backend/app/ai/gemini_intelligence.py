@@ -8,7 +8,7 @@ class GeminiIntelligenceService:
     """
     FINDBACK AI Advanced Cognitive Intelligence Service.
     Powers live multimodal AI reasoning, natural language search,
-    claim authenticity audits, and forensic match explainers.
+    claim authenticity audits, and match explainers.
     """
 
     def __init__(self):
@@ -23,12 +23,12 @@ class GeminiIntelligenceService:
 
     def explain_match(self, lost_item: Dict[str, Any], found_item: Dict[str, Any], score_breakdown: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Generates a deep forensic match explanation comparing Lost report against Found item.
+        Generates a deep verification match explanation comparing Lost report against Found item.
         """
         client = self._get_client()
         if client:
             prompt = f"""
-            You are the Senior Forensic Investigator for the Proctorial Board at GL Bajaj Institute of Technology & Management.
+            You are the Senior Verification Officer for the Proctorial Board at GL Bajaj Institute of Technology & Management.
             Analyze this candidate match between a student's lost item report and an item recovered on campus.
 
             LOST REPORT:
@@ -46,10 +46,10 @@ class GeminiIntelligenceService:
             - Color: {found_item.get('color')}
             - Description: {found_item.get('description')}
             - Found At: {found_item.get('location')} (Time: {found_item.get('found_at')})
-            - Detailed Forensic Specs: {json.dumps(found_item.get('detailed_specs', {}))}
+            - Detailed Hardware Specs: {json.dumps(found_item.get('detailed_specs', {}))}
 
             TASK:
-            1. Formulate an executive forensic summary of why these two items likely correlate.
+            1. Formulate an executive summary of why these two items likely correlate.
             2. List 3-4 key matching attributes.
             3. Note any subtle discrepancies or temporal differences.
             4. Provide 3 specific challenge questions for the Chief Proctor to ask during claimant verification.
@@ -113,7 +113,7 @@ class GeminiIntelligenceService:
         return {
             "verdict": "HIGH CONFIDENCE MATCH" if len(match_factors) >= 3 else "PROBABLE MATCH",
             "confidence_score": 85 if len(match_factors) >= 3 else 70,
-            "summary": f"Strong forensic correlation detected between student '{lost_item.get('user_name', 'Student')}' report of '{lost_item.get('item_name')}' and campus registry found item '{found_item.get('item_name')}'.",
+            "summary": f"Strong visual and attribute correlation detected between student '{lost_item.get('user_name', 'Student')}' report of '{lost_item.get('item_name')}' and campus custody found item '{found_item.get('item_name')}'.",
             "matching_factors": match_factors,
             "discrepancies": ["Subject to physical verification of serial numbers or protective wear."],
             "proctor_questions": questions,
@@ -135,7 +135,7 @@ class GeminiIntelligenceService:
             - Category: {found_item.get('category')}
             - Official Description: {found_item.get('description')}
             - Location: {found_item.get('location')}
-            - Hidden Forensic Specs: {json.dumps(found_item.get('detailed_specs', {}))}
+            - Hidden Verification Specs: {json.dumps(found_item.get('detailed_specs', {}))}
 
             STUDENT CLAIMANT PROOF OF OWNERSHIP:
             "{claim_statement}"
@@ -154,7 +154,7 @@ class GeminiIntelligenceService:
                 "corroborated_points": ["Accurately named internal contents", "Matched silicone cover color"],
                 "discrepancies_or_doubts": ["Did not mention small scratch on lid"],
                 "recommendation": "RECOMMEND APPROVAL & RELEASE",
-                "proctor_notes": "Student provided convincing specific proof matching the forensic record."
+                "proctor_notes": "Student provided convincing specific proof matching the custody verification record."
             }}
             """
             for model_name in self.models_to_try:

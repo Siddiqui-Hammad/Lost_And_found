@@ -8,14 +8,14 @@ from PIL import Image
 
 class AIVisionExtractor:
     """
-    FINDBACK AI Multimodal Vision & Forensic Hardware Feature Extractor for Admin / Proctorial Board.
+    FINDBACK AI Multimodal Vision & Hardware Feature Extractor for Admin / Proctorial Board.
     Deeply analyzes item photos, finder notes, and visual cues to extract:
     - Item Name & Subtype
     - Category, Brand & Model
     - Comprehensive Color Breakdown
     - Earbud Case Specs (form factor, finish, charging port, LED indicators, hinge, sleeve)
     - Earbuds Specs (stem style, Left/Right docking status, silicone tips, touch sensors, mic mesh, pogo pins)
-    - Distinguishing forensic marks (scratches, stickers, engravings)
+    - Distinguishing physical marks (scratches, stickers, engravings)
     - Proctorial Ownership Challenge Questions (secret verification questions for claimant interviews)
     
     Supports:
@@ -167,7 +167,7 @@ class AIVisionExtractor:
             except Exception as e:
                 print(f"[AIVisionExtractor] Gemini API error: {e}. Falling back to enhanced local vision engine.")
 
-        # Enhanced Local Vision & Forensic Hardware Engine
+        # Enhanced Local Vision & Hardware Specifications Engine
         return self._analyze_with_local_engine(image_bytes, user_note, location_hint)
 
     def _analyze_with_gemini(self, image_bytes: bytes, user_note: str, location_hint: str) -> Optional[Dict[str, Any]]:
@@ -176,12 +176,12 @@ class AIVisionExtractor:
 
         client = genai.Client(api_key=self.api_key)
         prompt = f"""
-        You are the Chief AI Forensic Examiner for the Proctorial Board & Security Department at GL Bajaj Institute of Technology & Management (GLBITM).
+        You are the Technical Inspection & Verification Specialist for the Proctorial Board & Security Department at GL Bajaj Institute of Technology & Management (GLBITM).
         Examine this photograph of an item recovered on campus.
         Inspector / Student Note: "{user_note}"
         Campus Location: "{location_hint}"
 
-        TASK: Perform a forensic inspection. Extract every possible physical detail, component specification, branding, and wear attribute.
+        TASK: Perform a meticulous physical inspection. Extract every possible physical detail, component specification, branding, and wear attribute.
         If the item is Earbuds / TWS / Audio, inspect the charging case and the earbuds separately in meticulous detail (form factor, charging port type, LED power indicators, hinge/latch mechanism, silicone protective skin, earbud stem vs in-ear style, presence of Left & Right buds, silicone tip color/size, touch sensors, mic grills, gold charging pogo pins, scratches, serial/markings).
         Also formulate 4 secret ownership verification challenge questions that only the genuine owner would know when claiming the item.
 
@@ -273,7 +273,7 @@ class AIVisionExtractor:
         return None
 
     def _analyze_with_local_engine(self, image_bytes: bytes, user_note: str, location_hint: str) -> Dict[str, Any]:
-        """High-precision local multimodal forensic synthesis combining visual metrics and domain knowledge."""
+        """High-precision local multimodal specifications synthesis combining visual metrics and domain knowledge."""
         profile = {"dominant_color": "Black", "secondary_color": "Grey", "accent_color": "Silver", "aspect_ratio": 1.0, "is_dark": False, "is_bright": False}
         if image_bytes:
             try:
@@ -310,7 +310,7 @@ class AIVisionExtractor:
             ]
         }
 
-        # 1. EARBUDS / TWS / HEADPHONES SPECIFIC FORENSIC RULES
+        # 1. EARBUDS / TWS / HEADPHONES SPECIFIC HARDWARE RULES
         if any(w in note_lower for w in ["earbud", "airpod", "headphone", "earphone", "boat", "noise", "airdopes", "audio", "tws", "case", "buds"]):
             if "airpod" in note_lower or "apple" in note_lower:
                 brand = "Apple"
