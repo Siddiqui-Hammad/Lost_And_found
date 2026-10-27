@@ -56,11 +56,24 @@ class Database:
             try:
                 with open(DB_JSON_PATH, "r", encoding="utf-8") as f:
                     self.collections = json.load(f)
+                self._last_mtime = os.path.getmtime(DB_JSON_PATH)
                 print(f"[DB] Loaded existing data store from {DB_JSON_PATH}")
                 return
             except Exception as e:
                 print(f"[DB] Error loading store: {e}. Re-seeding defaults.")
         self.seed_defaults()
+
+    def check_and_reload(self):
+        """Automatically reloads database from disk if the JSON store was modified by another process."""
+        if not self.is_connected and os.path.exists(DB_JSON_PATH):
+            try:
+                mtime = os.path.getmtime(DB_JSON_PATH)
+                if not hasattr(self, "_last_mtime") or mtime != self._last_mtime:
+                    with open(DB_JSON_PATH, "r", encoding="utf-8") as f:
+                        self.collections = json.load(f)
+                    self._last_mtime = mtime
+            except Exception:
+                pass
 
     def save_local_store(self):
         try:
@@ -106,6 +119,7 @@ class Database:
     # USER OPERATIONS
     # ==========================================
     def get_users(self) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.users.find({}, {"_id": 0}))
         return list(self.collections["users"].values())
@@ -178,11 +192,13 @@ class Database:
     # LOST ITEMS OPERATIONS
     # ==========================================
     def get_lost_items(self) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.lost_items.find({}, {"_id": 0}))
         return list(self.collections["lost_items"].values())
 
     def get_lost_item(self, item_id: str) -> Optional[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return self.mongo_db.lost_items.find_one({"item_id": item_id}, {"_id": 0})
         return self.collections["lost_items"].get(item_id)
@@ -207,11 +223,13 @@ class Database:
     # FOUND ITEMS OPERATIONS
     # ==========================================
     def get_found_items(self) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.found_items.find({}, {"_id": 0}))
         return list(self.collections["found_items"].values())
 
     def get_found_item(self, item_id: str) -> Optional[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return self.mongo_db.found_items.find_one({"item_id": item_id}, {"_id": 0})
         return self.collections["found_items"].get(item_id)
@@ -284,6 +302,7 @@ class Database:
     # CLAIMS
     # ==========================================
     def get_claims(self) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.claims.find({}, {"_id": 0}))
         return list(self.collections["claims"].values())
@@ -325,11 +344,13 @@ class Database:
         return notif_dict
 
     def get_user_notifications(self, user_email: str) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.notifications.find({"user_email": user_email}, {"_id": 0}))
         return [n for n in self.collections["notifications"].values() if n.get("user_email", "").lower() == user_email.lower()]
 
     def get_all_notifications(self) -> List[dict]:
+        self.check_and_reload()
         if self.is_connected:
             return list(self.mongo_db.notifications.find({}, {"_id": 0}))
         return list(self.collections["notifications"].values())

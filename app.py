@@ -845,8 +845,10 @@ def render_notification_hub_admin():
             with st.container(border=True):
                 cn1, cn2, cn3 = st.columns([1, 2.5, 1.2])
                 with cn1:
-                    ch_color = "green" if n.get("channel") == "WHATSAPP" else "blue"
-                    st.markdown(f"**:{ch_color}[{n.get('channel')}]**")
+                    if n.get("channel") == "WHATSAPP":
+                        st.markdown("<span style='background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid #10b981; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.8rem;'>📱 WHATSAPP</span>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<span style='background:rgba(56, 189, 248, 0.2); color:#38bdf8; border:1px solid #38bdf8; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.8rem;'>✉️ EMAIL</span>", unsafe_allow_html=True)
                     st.caption(f"🆔 {n.get('notification_id')}")
                     st.markdown(f"<span class='notif-token'>{n.get('claim_token')}</span>", unsafe_allow_html=True)
                 with cn2:
@@ -1464,9 +1466,21 @@ if not is_admin:
                 with st.container(border=True):
                     c1, c2, c3 = st.columns([1, 3, 1.2])
                     with c1:
-                        score_color = "purple" if m.final_match_score >= 90 else ("blue" if m.final_match_score >= 70 else "gray")
-                        st.markdown(f"### :{score_color}[{m.final_match_score}%]")
-                        st.caption(f"Tier: **{m.match_level}**")
+                        if m.final_match_score >= 90:
+                            b_bg, b_border, b_color, b_icon = "rgba(168, 85, 247, 0.2)", "#a855f7", "#c084fc", "🟣"
+                        elif m.final_match_score >= 70:
+                            b_bg, b_border, b_color, b_icon = "rgba(56, 189, 248, 0.2)", "#38bdf8", "#38bdf8", "🔵"
+                        else:
+                            b_bg, b_border, b_color, b_icon = "rgba(148, 163, 184, 0.2)", "#94a3b8", "#cbd5e1", "⚪"
+
+                        st.markdown(f"""
+                        <div style="text-align:center;">
+                            <div style="background:{b_bg}; color:{b_color}; border:1px solid {b_border}; padding:6px 10px; border-radius:12px; font-weight:800; font-size:1.15rem;">
+                                {b_icon} {m.final_match_score}%
+                            </div>
+                            <div style="color:#94a3b8; font-size:0.75rem; font-weight:600; margin-top:4px;">{m.match_level}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
                     with c2:
                         st.markdown(f"**Lost:** `{m.lost_item.item_name}` ↔ **Found:** `{m.found_item.item_name}`")
                         st.write(f"📍 {m.lost_item.location} ↔ {m.found_item.location} | Source: **{m.found_item.source}**")
@@ -1977,8 +1991,21 @@ else:
                 with st.container(border=True):
                     col_m1, col_m2 = st.columns([3.5, 1.3])
                     with col_m1:
-                        score_color = "purple" if m.final_match_score >= 90 else ("blue" if m.final_match_score >= 70 else "gray")
-                        st.markdown(f"### :{score_color}[{m.final_match_score}%] — {m.match_level}")
+                        if m.final_match_score >= 90:
+                            b_bg, b_border, b_color, b_icon = "rgba(168, 85, 247, 0.2)", "#a855f7", "#c084fc", "🟣"
+                        elif m.final_match_score >= 70:
+                            b_bg, b_border, b_color, b_icon = "rgba(56, 189, 248, 0.2)", "#38bdf8", "#38bdf8", "🔵"
+                        else:
+                            b_bg, b_border, b_color, b_icon = "rgba(148, 163, 184, 0.2)", "#94a3b8", "#cbd5e1", "⚪"
+                        
+                        st.markdown(f"""
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                            <span style="background:{b_bg}; color:{b_color}; border:1px solid {b_border}; padding:3px 12px; border-radius:9999px; font-weight:800; font-size:1.1rem;">
+                                {b_icon} {m.final_match_score}% MATCH
+                            </span>
+                            <span style="color:#f8fafc; font-weight:700; font-size:1.02rem;">{m.match_level}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
                         st.markdown(f"**Lost:** `{m.lost_item.item_name}` (Student: {m.lost_item.user_name}) ↔ **Found:** `{m.found_item.item_name}` ({m.found_item.source})")
                         st.caption(f"📍 {m.lost_item.location} ↔ {m.found_item.location} • Status: {m.found_item.status}")
                         st.caption(f"Text: {m.text_score}% | Cat: {m.category_score}% | Loc: {m.location_score}% | Color: {m.color_score}% | Time: {m.time_score}%")
